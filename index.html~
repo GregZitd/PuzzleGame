@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <title>Main</title>
+        <link href="style.css" rel="stylesheet"/>
+	<script src="main.js"></script>
+    </head>
+    <body>
+        <img id="myimage" src=""/>
+	<div id="myapp"></div>
+	<script type="text/javascript">
+         //Start the Elm app
+	 var app = Elm.Main.init ({
+	     node: document.getElementById('myapp')
+	 });
+         
+         app.ports.changeCursor.subscribe(function(newCursor) {
+             Console.log(newCursor);
+         });
+
+	</script>
+        </body>
+</html>

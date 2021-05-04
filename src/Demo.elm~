@@ -1,0 +1,112 @@
+module Demo exposing (..)
+
+import Board exposing (Piece, Shape(..), Color(..), Board, Tile(..), Field(..), emptyScore, ScoreDict, Property)
+import Dict exposing (Dict)
+
+probaPiece3 : Piece
+probaPiece3 =
+    { shape = Threei [(0,0), (0,1), (0,-1)]
+    , borderTransform = {rotate = 0, translate = (0,0)}
+    , drawPosition = Nothing
+    , positions = []
+    , req = [ (Purple, 2) , (Green, 0) , (Yellow, 0) , (Orange, 0) ]
+    , score = emptyScore
+    }
+probaPiece2 : Piece
+probaPiece2 =
+    { shape = Threel [(0,0), (0,-1), (1,0)]
+    , borderTransform = {rotate = 0, translate = (0,0)}
+    , drawPosition = Nothing
+    , positions = []
+    , req = [ (Purple, 4) , (Green, 0) , (Yellow, 0) , (Orange, 1) ]
+    , score = emptyScore
+    }
+probaPiece : Piece
+probaPiece =
+    { shape = Twoi [(0,0), (0,1)]
+    , borderTransform = {rotate = 0, translate = (0,0)}
+    , drawPosition = Nothing
+    , positions = []
+    , req = [ (Purple, 4) , (Green, 0) , (Yellow, 0) , (Orange, 1) ]
+    , score = emptyScore
+    }
+initBoard : Board
+initBoard =
+    (set (1,2) (Wall False) << set (3,1) (Wall False))
+        { tiles =
+            Array.repeat 4 <|
+                Array.repeat 4 (NonTile False)
+        , pieces = Dict.empty
+        , highlight = []
+        , rowReqs = Dict.insert 3
+                    ( [ (Purple, 4) , (Green, 0) , (Yellow, 0) , (Orange, 1) ]
+                    , emptyScore
+                    ) Dict.empty
+        , colReqs = Dict.insert 3
+                    ( [ (Purple, 4) , (Green, 0) , (Yellow, 0) , (Orange, 1) ]
+                    , emptyScore
+                    ) Dict.empty
+        }
+
+probaTile4 : Tile
+probaTile4 =
+    { color = Yellow
+    , baseValue = 1
+    , currentValue = 1
+    , prodBonus = 0
+    , addBonus = 0
+    , properties = [probaProperty]
+    , drawPosition = Nothing
+    }
+
+probaTile3 : Tile
+probaTile3 =
+    { color = Green
+    , baseValue = 1
+    , currentValue = 1
+    , prodBonus = 0
+    , addBonus = 0
+    , properties = [probaProperty]
+    , drawPosition = Nothing
+    }
+probaTile : Tile
+probaTile =
+    { color = Purple
+    , baseValue = 1
+    , currentValue = 1
+    , prodBonus = 0
+    , addBonus = 0
+    , properties = [probaProperty]
+    , drawPosition = Nothing
+    }
+
+probaTile2 : Tile
+probaTile2 =
+    { color = Orange
+    , baseValue = 1
+    , currentValue = 1
+    , prodBonus = 0
+    , addBonus = 0
+    , properties = [probaProperty2, probaProperty]
+    , drawPosition = Nothing
+    }
+    
+probaProperty : Property
+probaProperty =
+    { reqColor = Orange
+    , region = [(1,1), (1,0)]
+    , reqValue = 1
+    , prodBonus = 0
+    , addBonus = 1
+    , isMet = False
+    }
+    
+probaProperty2 : Property
+probaProperty2 =
+    { reqColor = Purple
+    , region = [(-1,-1)]
+    , reqValue = 2
+    , prodBonus = 0
+    , addBonus = 1
+    , isMet = False
+    }
