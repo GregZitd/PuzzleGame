@@ -4392,6 +4392,52 @@ var _Bitwise_shiftRightZfBy = F2(function(offset, a)
 {
 	return a >>> offset;
 });
+
+
+
+function _Time_now(millisToPosix)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(millisToPosix(Date.now())));
+	});
+}
+
+var _Time_setInterval = F2(function(interval, task)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
+		return function() { clearInterval(id); };
+	});
+});
+
+function _Time_here()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(
+			A2($elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
+		));
+	});
+}
+
+
+function _Time_getZoneName()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		try
+		{
+			var name = $elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
+		}
+		catch (e)
+		{
+			var name = $elm$time$Time$Offset(new Date().getTimezoneOffset());
+		}
+		callback(_Scheduler_succeed(name));
+	});
+}
 var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
@@ -5181,24 +5227,573 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
+var $author$project$Main$NewBoard = function (a) {
+	return {$: 'NewBoard', a: a};
+};
+var $author$project$Main$NewPieceDict = function (a) {
+	return {$: 'NewPieceDict', a: a};
+};
+var $author$project$Main$NewTileList = function (a) {
+	return {$: 'NewTileList', a: a};
+};
 var $author$project$Board$None = {$: 'None'};
-var $author$project$Board$Green = {$: 'Green'};
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$random$Random$Generate = function (a) {
+	return {$: 'Generate', a: a};
+};
+var $elm$random$Random$Seed = F2(
+	function (a, b) {
+		return {$: 'Seed', a: a, b: b};
+	});
+var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var $elm$random$Random$next = function (_v0) {
+	var state0 = _v0.a;
+	var incr = _v0.b;
+	return A2($elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
+};
+var $elm$random$Random$initialSeed = function (x) {
+	var _v0 = $elm$random$Random$next(
+		A2($elm$random$Random$Seed, 0, 1013904223));
+	var state1 = _v0.a;
+	var incr = _v0.b;
+	var state2 = (state1 + x) >>> 0;
+	return $elm$random$Random$next(
+		A2($elm$random$Random$Seed, state2, incr));
+};
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$random$Random$init = A2(
+	$elm$core$Task$andThen,
+	function (time) {
+		return $elm$core$Task$succeed(
+			$elm$random$Random$initialSeed(
+				$elm$time$Time$posixToMillis(time)));
+	},
+	$elm$time$Time$now);
+var $elm$random$Random$step = F2(
+	function (_v0, seed) {
+		var generator = _v0.a;
+		return generator(seed);
+	});
+var $elm$random$Random$onEffects = F3(
+	function (router, commands, seed) {
+		if (!commands.b) {
+			return $elm$core$Task$succeed(seed);
+		} else {
+			var generator = commands.a.a;
+			var rest = commands.b;
+			var _v1 = A2($elm$random$Random$step, generator, seed);
+			var value = _v1.a;
+			var newSeed = _v1.b;
+			return A2(
+				$elm$core$Task$andThen,
+				function (_v2) {
+					return A3($elm$random$Random$onEffects, router, rest, newSeed);
+				},
+				A2($elm$core$Platform$sendToApp, router, value));
+		}
+	});
+var $elm$random$Random$onSelfMsg = F3(
+	function (_v0, _v1, seed) {
+		return $elm$core$Task$succeed(seed);
+	});
+var $elm$random$Random$Generator = function (a) {
+	return {$: 'Generator', a: a};
+};
+var $elm$random$Random$map = F2(
+	function (func, _v0) {
+		var genA = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v1 = genA(seed0);
+				var a = _v1.a;
+				var seed1 = _v1.b;
+				return _Utils_Tuple2(
+					func(a),
+					seed1);
+			});
+	});
+var $elm$random$Random$cmdMap = F2(
+	function (func, _v0) {
+		var generator = _v0.a;
+		return $elm$random$Random$Generate(
+			A2($elm$random$Random$map, func, generator));
+	});
+_Platform_effectManagers['Random'] = _Platform_createManager($elm$random$Random$init, $elm$random$Random$onEffects, $elm$random$Random$onSelfMsg, $elm$random$Random$cmdMap);
+var $elm$random$Random$command = _Platform_leaf('Random');
+var $elm$random$Random$generate = F2(
+	function (tagger, generator) {
+		return $elm$random$Random$command(
+			$elm$random$Random$Generate(
+				A2($elm$random$Random$map, tagger, generator)));
+	});
 var $author$project$Board$NonTile = function (a) {
 	return {$: 'NonTile', a: a};
 };
-var $author$project$Board$Orange = {$: 'Orange'};
-var $author$project$Board$Purple = {$: 'Purple'};
 var $author$project$Board$Wall = function (a) {
 	return {$: 'Wall', a: a};
 };
-var $author$project$Board$Yellow = {$: 'Yellow'};
-var $elm$core$Basics$composeL = F3(
-	function (g, f, x) {
-		return g(
-			f(x));
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$core$Bitwise$xor = _Bitwise_xor;
+var $elm$random$Random$peel = function (_v0) {
+	var state = _v0.a;
+	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
+	return ((word >>> 22) ^ word) >>> 0;
+};
+var $elm$random$Random$int = F2(
+	function (a, b) {
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v0 = (_Utils_cmp(a, b) < 0) ? _Utils_Tuple2(a, b) : _Utils_Tuple2(b, a);
+				var lo = _v0.a;
+				var hi = _v0.b;
+				var range = (hi - lo) + 1;
+				if (!((range - 1) & range)) {
+					return _Utils_Tuple2(
+						(((range - 1) & $elm$random$Random$peel(seed0)) >>> 0) + lo,
+						$elm$random$Random$next(seed0));
+				} else {
+					var threshhold = (((-range) >>> 0) % range) >>> 0;
+					var accountForBias = function (seed) {
+						accountForBias:
+						while (true) {
+							var x = $elm$random$Random$peel(seed);
+							var seedN = $elm$random$Random$next(seed);
+							if (_Utils_cmp(x, threshhold) < 0) {
+								var $temp$seed = seedN;
+								seed = $temp$seed;
+								continue accountForBias;
+							} else {
+								return _Utils_Tuple2((x % range) + lo, seedN);
+							}
+						}
+					};
+					return accountForBias(seed0);
+				}
+			});
 	});
+var $elm$random$Random$map2 = F3(
+	function (func, _v0, _v1) {
+		var genA = _v0.a;
+		var genB = _v1.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v2 = genA(seed0);
+				var a = _v2.a;
+				var seed1 = _v2.b;
+				var _v3 = genB(seed1);
+				var b = _v3.a;
+				var seed2 = _v3.b;
+				return _Utils_Tuple2(
+					A2(func, a, b),
+					seed2);
+			});
+	});
+var $elm$core$Tuple$pair = F2(
+	function (a, b) {
+		return _Utils_Tuple2(a, b);
+	});
+var $elm$core$Array$bitMask = 4294967295 >>> (32 - $elm$core$Array$shiftStep);
+var $elm$core$Basics$ge = _Utils_ge;
+var $elm$core$Elm$JsArray$unsafeGet = _JsArray_unsafeGet;
+var $elm$core$Array$getHelp = F3(
+	function (shift, index, tree) {
+		getHelp:
+		while (true) {
+			var pos = $elm$core$Array$bitMask & (index >>> shift);
+			var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+			if (_v0.$ === 'SubTree') {
+				var subTree = _v0.a;
+				var $temp$shift = shift - $elm$core$Array$shiftStep,
+					$temp$index = index,
+					$temp$tree = subTree;
+				shift = $temp$shift;
+				index = $temp$index;
+				tree = $temp$tree;
+				continue getHelp;
+			} else {
+				var values = _v0.a;
+				return A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, values);
+			}
+		}
+	});
+var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
+var $elm$core$Array$tailIndex = function (len) {
+	return (len >>> 5) << 5;
+};
+var $elm$core$Array$get = F2(
+	function (index, _v0) {
+		var len = _v0.a;
+		var startShift = _v0.b;
+		var tree = _v0.c;
+		var tail = _v0.d;
+		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? $elm$core$Maybe$Nothing : ((_Utils_cmp(
+			index,
+			$elm$core$Array$tailIndex(len)) > -1) ? $elm$core$Maybe$Just(
+			A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, tail)) : $elm$core$Maybe$Just(
+			A3($elm$core$Array$getHelp, startShift, index, tree)));
+	});
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
+var $elm$core$Array$setHelp = F4(
+	function (shift, index, value, tree) {
+		var pos = $elm$core$Array$bitMask & (index >>> shift);
+		var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+		if (_v0.$ === 'SubTree') {
+			var subTree = _v0.a;
+			var newSub = A4($elm$core$Array$setHelp, shift - $elm$core$Array$shiftStep, index, value, subTree);
+			return A3(
+				$elm$core$Elm$JsArray$unsafeSet,
+				pos,
+				$elm$core$Array$SubTree(newSub),
+				tree);
+		} else {
+			var values = _v0.a;
+			var newLeaf = A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, values);
+			return A3(
+				$elm$core$Elm$JsArray$unsafeSet,
+				pos,
+				$elm$core$Array$Leaf(newLeaf),
+				tree);
+		}
+	});
+var $elm$core$Array$set = F3(
+	function (index, value, array) {
+		var len = array.a;
+		var startShift = array.b;
+		var tree = array.c;
+		var tail = array.d;
+		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? array : ((_Utils_cmp(
+			index,
+			$elm$core$Array$tailIndex(len)) > -1) ? A4(
+			$elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			tree,
+			A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, tail)) : A4(
+			$elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			A4($elm$core$Array$setHelp, startShift, index, value, tree),
+			tail));
+	});
+var $author$project$Board$set = F3(
+	function (_v0, field, board) {
+		var xIndex = _v0.a;
+		var yIndex = _v0.b;
+		var mRow = A2(
+			$elm$core$Maybe$map,
+			A2($elm$core$Array$set, xIndex, field),
+			A2($elm$core$Array$get, yIndex, board.tiles));
+		if (mRow.$ === 'Nothing') {
+			return board;
+		} else {
+			var row = mRow.a;
+			return _Utils_update(
+				board,
+				{
+					tiles: A3($elm$core$Array$set, yIndex, row, board.tiles)
+				});
+		}
+	});
+var $elm$random$Random$maxInt = 2147483647;
+var $elm$random$Random$minInt = -2147483648;
+var $elm_community$random_extra$Random$List$anyInt = A2($elm$random$Random$int, $elm$random$Random$minInt, $elm$random$Random$maxInt);
+var $elm$random$Random$map3 = F4(
+	function (func, _v0, _v1, _v2) {
+		var genA = _v0.a;
+		var genB = _v1.a;
+		var genC = _v2.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v3 = genA(seed0);
+				var a = _v3.a;
+				var seed1 = _v3.b;
+				var _v4 = genB(seed1);
+				var b = _v4.a;
+				var seed2 = _v4.b;
+				var _v5 = genC(seed2);
+				var c = _v5.a;
+				var seed3 = _v5.b;
+				return _Utils_Tuple2(
+					A3(func, a, b, c),
+					seed3);
+			});
+	});
+var $elm$core$Bitwise$or = _Bitwise_or;
+var $elm$random$Random$independentSeed = $elm$random$Random$Generator(
+	function (seed0) {
+		var makeIndependentSeed = F3(
+			function (state, b, c) {
+				return $elm$random$Random$next(
+					A2($elm$random$Random$Seed, state, (1 | (b ^ c)) >>> 0));
+			});
+		var gen = A2($elm$random$Random$int, 0, 4294967295);
+		return A2(
+			$elm$random$Random$step,
+			A4($elm$random$Random$map3, makeIndependentSeed, gen, gen, gen),
+			seed0);
+	});
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
+};
+var $elm$core$List$sortBy = _List_sortBy;
+var $elm_community$random_extra$Random$List$shuffle = function (list) {
+	return A2(
+		$elm$random$Random$map,
+		function (independentSeed) {
+			return A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$first,
+				A2(
+					$elm$core$List$sortBy,
+					$elm$core$Tuple$second,
+					A3(
+						$elm$core$List$foldl,
+						F2(
+							function (item, _v0) {
+								var acc = _v0.a;
+								var seed = _v0.b;
+								var _v1 = A2($elm$random$Random$step, $elm_community$random_extra$Random$List$anyInt, seed);
+								var tag = _v1.a;
+								var nextSeed = _v1.b;
+								return _Utils_Tuple2(
+									A2(
+										$elm$core$List$cons,
+										_Utils_Tuple2(item, tag),
+										acc),
+									nextSeed);
+							}),
+						_Utils_Tuple2(_List_Nil, independentSeed),
+						list).a));
+		},
+		$elm$random$Random$independentSeed);
+};
+var $elm$core$List$takeReverse = F3(
+	function (n, list, kept) {
+		takeReverse:
+		while (true) {
+			if (n <= 0) {
+				return kept;
+			} else {
+				if (!list.b) {
+					return kept;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs,
+						$temp$kept = A2($elm$core$List$cons, x, kept);
+					n = $temp$n;
+					list = $temp$list;
+					kept = $temp$kept;
+					continue takeReverse;
+				}
+			}
+		}
+	});
+var $elm$core$List$takeTailRec = F2(
+	function (n, list) {
+		return $elm$core$List$reverse(
+			A3($elm$core$List$takeReverse, n, list, _List_Nil));
+	});
+var $elm$core$List$takeFast = F3(
+	function (ctr, n, list) {
+		if (n <= 0) {
+			return _List_Nil;
+		} else {
+			var _v0 = _Utils_Tuple2(n, list);
+			_v0$1:
+			while (true) {
+				_v0$5:
+				while (true) {
+					if (!_v0.b.b) {
+						return list;
+					} else {
+						if (_v0.b.b.b) {
+							switch (_v0.a) {
+								case 1:
+									break _v0$1;
+								case 2:
+									var _v2 = _v0.b;
+									var x = _v2.a;
+									var _v3 = _v2.b;
+									var y = _v3.a;
+									return _List_fromArray(
+										[x, y]);
+								case 3:
+									if (_v0.b.b.b.b) {
+										var _v4 = _v0.b;
+										var x = _v4.a;
+										var _v5 = _v4.b;
+										var y = _v5.a;
+										var _v6 = _v5.b;
+										var z = _v6.a;
+										return _List_fromArray(
+											[x, y, z]);
+									} else {
+										break _v0$5;
+									}
+								default:
+									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
+										var _v7 = _v0.b;
+										var x = _v7.a;
+										var _v8 = _v7.b;
+										var y = _v8.a;
+										var _v9 = _v8.b;
+										var z = _v9.a;
+										var _v10 = _v9.b;
+										var w = _v10.a;
+										var tl = _v10.b;
+										return (ctr > 1000) ? A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
+									} else {
+										break _v0$5;
+									}
+							}
+						} else {
+							if (_v0.a === 1) {
+								break _v0$1;
+							} else {
+								break _v0$5;
+							}
+						}
+					}
+				}
+				return list;
+			}
+			var _v1 = _v0.b;
+			var x = _v1.a;
+			return _List_fromArray(
+				[x]);
+		}
+	});
+var $elm$core$List$take = F2(
+	function (n, list) {
+		return A3($elm$core$List$takeFast, 0, n, list);
+	});
+var $author$project$ProcGen$addWalls = F2(
+	function (level, board) {
+		var ys = $elm_community$random_extra$Random$List$shuffle(
+			_List_fromArray(
+				[0, 1, 2, 3]));
+		var xs = $elm_community$random_extra$Random$List$shuffle(
+			_List_fromArray(
+				[0, 1, 2, 3]));
+		var threeWalls = A2(
+			$elm$random$Random$map,
+			$elm$core$Basics$le(level - 3),
+			A2($elm$random$Random$int, 1, 10));
+		var cords = A3(
+			$elm$random$Random$map2,
+			$elm$core$List$map2($elm$core$Tuple$pair),
+			xs,
+			ys);
+		var wallPos = A3(
+			$elm$random$Random$map2,
+			F2(
+				function (cord, threeW) {
+					return threeW ? A2($elm$core$List$take, 2, cord) : A2($elm$core$List$take, 3, cord);
+				}),
+			cords,
+			threeWalls);
+		return A2(
+			$elm$random$Random$map,
+			function (positions) {
+				return A3(
+					$elm$core$List$foldr,
+					F2(
+						function (ind, brdf) {
+							return A3(
+								$author$project$Board$set,
+								ind,
+								$author$project$Board$Wall(false),
+								brdf);
+						}),
+					board,
+					positions);
+			},
+			wallPos);
+	});
+var $elm$random$Random$andThen = F2(
+	function (callback, _v0) {
+		var genA = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed) {
+				var _v1 = genA(seed);
+				var result = _v1.a;
+				var newSeed = _v1.b;
+				var _v2 = callback(result);
+				var genB = _v2.a;
+				return genB(newSeed);
+			});
+	});
+var $elm$random$Random$constant = function (value) {
+	return $elm$random$Random$Generator(
+		function (seed) {
+			return _Utils_Tuple2(value, seed);
+		});
+};
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
+var $author$project$Board$Green = {$: 'Green'};
+var $author$project$Board$Orange = {$: 'Orange'};
+var $author$project$Board$Purple = {$: 'Purple'};
+var $author$project$Board$Yellow = {$: 'Yellow'};
 var $author$project$Board$emptyScore = _List_fromArray(
 	[
 		_Utils_Tuple2($author$project$Board$Purple, 0),
@@ -5315,6 +5910,284 @@ var $elm$core$Dict$insert = F3(
 			return x;
 		}
 	});
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$random$Random$addOne = function (value) {
+	return _Utils_Tuple2(1, value);
+};
+var $elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
+var $elm$random$Random$float = F2(
+	function (a, b) {
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var seed1 = $elm$random$Random$next(seed0);
+				var range = $elm$core$Basics$abs(b - a);
+				var n1 = $elm$random$Random$peel(seed1);
+				var n0 = $elm$random$Random$peel(seed0);
+				var lo = (134217727 & n1) * 1.0;
+				var hi = (67108863 & n0) * 1.0;
+				var val = ((hi * 134217728.0) + lo) / 9007199254740992.0;
+				var scaled = (val * range) + a;
+				return _Utils_Tuple2(
+					scaled,
+					$elm$random$Random$next(seed1));
+			});
+	});
+var $elm$random$Random$getByWeight = F3(
+	function (_v0, others, countdown) {
+		getByWeight:
+		while (true) {
+			var weight = _v0.a;
+			var value = _v0.b;
+			if (!others.b) {
+				return value;
+			} else {
+				var second = others.a;
+				var otherOthers = others.b;
+				if (_Utils_cmp(
+					countdown,
+					$elm$core$Basics$abs(weight)) < 1) {
+					return value;
+				} else {
+					var $temp$_v0 = second,
+						$temp$others = otherOthers,
+						$temp$countdown = countdown - $elm$core$Basics$abs(weight);
+					_v0 = $temp$_v0;
+					others = $temp$others;
+					countdown = $temp$countdown;
+					continue getByWeight;
+				}
+			}
+		}
+	});
+var $elm$core$List$sum = function (numbers) {
+	return A3($elm$core$List$foldl, $elm$core$Basics$add, 0, numbers);
+};
+var $elm$random$Random$weighted = F2(
+	function (first, others) {
+		var normalize = function (_v0) {
+			var weight = _v0.a;
+			return $elm$core$Basics$abs(weight);
+		};
+		var total = normalize(first) + $elm$core$List$sum(
+			A2($elm$core$List$map, normalize, others));
+		return A2(
+			$elm$random$Random$map,
+			A2($elm$random$Random$getByWeight, first, others),
+			A2($elm$random$Random$float, 0, total));
+	});
+var $elm$random$Random$uniform = F2(
+	function (value, valueList) {
+		return A2(
+			$elm$random$Random$weighted,
+			$elm$random$Random$addOne(value),
+			A2($elm$core$List$map, $elm$random$Random$addOne, valueList));
+	});
+var $author$project$ProcGen$generateColor = A2(
+	$elm$random$Random$uniform,
+	$author$project$Board$Purple,
+	_List_fromArray(
+		[$author$project$Board$Green, $author$project$Board$Yellow, $author$project$Board$Orange]));
+var $elm_community$list_extra$List$Extra$remove = F2(
+	function (x, xs) {
+		if (!xs.b) {
+			return _List_Nil;
+		} else {
+			var y = xs.a;
+			var ys = xs.b;
+			return _Utils_eq(x, y) ? ys : A2(
+				$elm$core$List$cons,
+				y,
+				A2($elm_community$list_extra$List$Extra$remove, x, ys));
+		}
+	});
+var $author$project$ProcGen$generateSecondColor = function (firstColor) {
+	return _Utils_eq(firstColor, $author$project$Board$Purple) ? A2(
+		$elm$random$Random$weighted,
+		_Utils_Tuple2(0.3, $author$project$Board$Purple),
+		A2(
+			$elm$core$List$map,
+			$elm$core$Tuple$pair(3 / 12),
+			_List_fromArray(
+				[$author$project$Board$Green, $author$project$Board$Yellow, $author$project$Board$Orange]))) : A2(
+		$elm$random$Random$weighted,
+		_Utils_Tuple2(0.3, firstColor),
+		A2(
+			$elm$core$List$map,
+			$elm$core$Tuple$pair(3 / 12),
+			A2(
+				$elm_community$list_extra$List$Extra$remove,
+				firstColor,
+				_List_fromArray(
+					[$author$project$Board$Purple, $author$project$Board$Green, $author$project$Board$Yellow, $author$project$Board$Orange]))));
+};
+var $elm$core$Basics$always = F2(
+	function (a, _v0) {
+		return a;
+	});
+var $elm_community$list_extra$List$Extra$updateIf = F3(
+	function (predicate, update, list) {
+		return A2(
+			$elm$core$List$map,
+			function (item) {
+				return predicate(item) ? update(item) : item;
+			},
+			list);
+	});
+var $elm_community$list_extra$List$Extra$setIf = F3(
+	function (predicate, replacement, list) {
+		return A3(
+			$elm_community$list_extra$List$Extra$updateIf,
+			predicate,
+			$elm$core$Basics$always(replacement),
+			list);
+	});
+var $author$project$ProcGen$generateSingleColorReq = function (sum) {
+	return A2(
+		$elm$random$Random$map,
+		function (color) {
+			return A3(
+				$elm_community$list_extra$List$Extra$setIf,
+				A2(
+					$elm$core$Basics$composeL,
+					$elm$core$Basics$eq(color),
+					$elm$core$Tuple$first),
+				_Utils_Tuple2(color, sum),
+				$author$project$Board$emptyScore);
+		},
+		$author$project$ProcGen$generateColor);
+};
+var $elm$core$Tuple$mapSecond = F2(
+	function (func, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return _Utils_Tuple2(
+			x,
+			func(y));
+	});
+var $author$project$ProcGen$splitTo2 = function (num) {
+	var head = A2(
+		$elm$random$Random$int,
+		$elm$core$Basics$ceiling(num / 3),
+		$elm$core$Basics$floor((num * 2) / 3));
+	return A2(
+		$elm$random$Random$map,
+		function (x) {
+			return _List_fromArray(
+				[x, num - x]);
+		},
+		head);
+};
+var $author$project$ProcGen$generateReq = function (sum) {
+	if (sum <= 3) {
+		return $author$project$ProcGen$generateSingleColorReq(sum);
+	} else {
+		var values = $author$project$ProcGen$splitTo2(sum);
+		var toScore = F3(
+			function (vals, fstCol, sndCol) {
+				if ((vals.b && vals.b.b) && (!vals.b.b.b)) {
+					var fstVal = vals.a;
+					var _v1 = vals.b;
+					var sndVal = _v1.a;
+					return A3(
+						$elm_community$list_extra$List$Extra$updateIf,
+						A2(
+							$elm$core$Basics$composeL,
+							$elm$core$Basics$eq(fstCol),
+							$elm$core$Tuple$first),
+						$elm$core$Tuple$mapSecond(
+							$elm$core$Basics$add(fstVal)),
+						A3(
+							$elm_community$list_extra$List$Extra$setIf,
+							A2(
+								$elm$core$Basics$composeL,
+								$elm$core$Basics$eq(sndCol),
+								$elm$core$Tuple$first),
+							_Utils_Tuple2(sndCol, sndVal),
+							$author$project$Board$emptyScore));
+				} else {
+					return $author$project$Board$emptyScore;
+				}
+			});
+		var fstColor = $author$project$ProcGen$generateColor;
+		var sndColor = A2($elm$random$Random$andThen, $author$project$ProcGen$generateSecondColor, fstColor);
+		return A4($elm$random$Random$map3, toScore, values, fstColor, sndColor);
+	}
+};
+var $author$project$ProcGen$splitTo3 = function (num) {
+	var head = A2(
+		$elm$random$Random$int,
+		$elm$core$Basics$ceiling(num / 6),
+		$elm$core$Basics$floor(num / 2));
+	var tail = A3(
+		$elm$random$Random$map2,
+		$elm$core$Basics$sub,
+		$elm$random$Random$constant(num),
+		head);
+	return A3(
+		$elm$random$Random$map2,
+		$elm$core$List$cons,
+		head,
+		A2($elm$random$Random$andThen, $author$project$ProcGen$splitTo2, tail));
+};
+var $elm_community$random_extra$Random$Extra$sequence = A2(
+	$elm$core$List$foldr,
+	$elm$random$Random$map2($elm$core$List$cons),
+	$elm$random$Random$constant(_List_Nil));
+var $elm_community$random_extra$Random$Extra$traverse = function (f) {
+	return A2(
+		$elm$core$Basics$composeL,
+		$elm_community$random_extra$Random$Extra$sequence,
+		$elm$core$List$map(f));
+};
+var $elm_community$list_extra$List$Extra$zip = $elm$core$List$map2($elm$core$Tuple$pair);
+var $author$project$ProcGen$generateRowReqs = function (level) {
+	var toScoreDict = F2(
+		function (scoreList, indexList) {
+			return $elm$core$Dict$fromList(
+				A2(
+					$elm_community$list_extra$List$Extra$zip,
+					indexList,
+					A2(
+						$elm$core$List$map,
+						function (x) {
+							return _Utils_Tuple2(x, $author$project$Board$emptyScore);
+						},
+						scoreList)));
+		});
+	var sum = (level * 2) + 1;
+	var sums = (sum < 5) ? $elm$random$Random$constant(
+		_List_fromArray(
+			[sum])) : ((sum < 9) ? $author$project$ProcGen$splitTo2(sum) : $author$project$ProcGen$splitTo3(sum));
+	var reqs = A2(
+		$elm$random$Random$andThen,
+		$elm_community$random_extra$Random$Extra$traverse($author$project$ProcGen$generateReq),
+		sums);
+	return A3(
+		$elm$random$Random$map2,
+		toScoreDict,
+		reqs,
+		$elm_community$random_extra$Random$List$shuffle(
+			_List_fromArray(
+				[0, 1, 2, 3])));
+};
 var $elm$core$Array$repeat = F2(
 	function (n, e) {
 		return A2(
@@ -5324,120 +6197,696 @@ var $elm$core$Array$repeat = F2(
 				return e;
 			});
 	});
-var $elm$core$Bitwise$and = _Bitwise_and;
-var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
-var $elm$core$Array$bitMask = 4294967295 >>> (32 - $elm$core$Array$shiftStep);
-var $elm$core$Basics$ge = _Utils_ge;
-var $elm$core$Elm$JsArray$unsafeGet = _JsArray_unsafeGet;
-var $elm$core$Array$getHelp = F3(
-	function (shift, index, tree) {
-		getHelp:
+var $author$project$ProcGen$generateBoard = function (level) {
+	return A3(
+		$elm$random$Random$map2,
+		F2(
+			function (colReqs, model) {
+				return _Utils_update(
+					model,
+					{colReqs: colReqs});
+			}),
+		$author$project$ProcGen$generateRowReqs(level),
+		A3(
+			$elm$random$Random$map2,
+			F2(
+				function (rowReqs, model) {
+					return _Utils_update(
+						model,
+						{rowReqs: rowReqs});
+				}),
+			$author$project$ProcGen$generateRowReqs(level),
+			A2(
+				$elm$random$Random$andThen,
+				$author$project$ProcGen$addWalls(level),
+				$elm$random$Random$constant(
+					{
+						colReqs: $elm$core$Dict$empty,
+						highlight: _List_Nil,
+						pieces: $elm$core$Dict$empty,
+						rowReqs: $elm$core$Dict$empty,
+						tiles: A2(
+							$elm$core$Array$repeat,
+							4,
+							A2(
+								$elm$core$Array$repeat,
+								4,
+								$author$project$Board$NonTile(false)))
+					}))));
+};
+var $author$project$Board$Twoi = function (a) {
+	return {$: 'Twoi', a: a};
+};
+var $author$project$ProcGen$pRound = function (_float) {
+	var prob = _float - $elm$core$Basics$floor(_float);
+	return A2(
+		$elm$random$Random$map,
+		$elm$core$Basics$add(
+			$elm$core$Basics$floor(_float)),
+		A2(
+			$elm$random$Random$weighted,
+			_Utils_Tuple2(prob, 1),
+			_List_fromArray(
+				[
+					_Utils_Tuple2(1 - prob, 0)
+				])));
+};
+var $author$project$Board$twoiStartIndex = _List_fromArray(
+	[
+		_Utils_Tuple2(0, 0),
+		_Utils_Tuple2(0, 1)
+	]);
+var $author$project$ProcGen$generate2Piece = function (level) {
+	var reqNum = $author$project$ProcGen$pRound(((level * 2) + 2) / 6);
+	return A2(
+		$elm$random$Random$map,
+		function (req) {
+			return {
+				borderTransform: {
+					rotate: 0,
+					translate: _Utils_Tuple2(0, 0)
+				},
+				drawPosition: $elm$core$Maybe$Nothing,
+				level: level,
+				positions: _List_Nil,
+				req: req,
+				score: $author$project$Board$emptyScore,
+				shape: $author$project$Board$Twoi($author$project$Board$twoiStartIndex)
+			};
+		},
+		A2($elm$random$Random$andThen, $author$project$ProcGen$generateSingleColorReq, reqNum));
+};
+var $author$project$Board$Threei = function (a) {
+	return {$: 'Threei', a: a};
+};
+var $author$project$Board$Threel = function (a) {
+	return {$: 'Threel', a: a};
+};
+var $author$project$Board$threeiStartIndex = _List_fromArray(
+	[
+		_Utils_Tuple2(0, 0),
+		_Utils_Tuple2(0, 1),
+		_Utils_Tuple2(0, -1)
+	]);
+var $author$project$Board$threelStartIndex = _List_fromArray(
+	[
+		_Utils_Tuple2(0, 0),
+		_Utils_Tuple2(0, -1),
+		_Utils_Tuple2(1, 0)
+	]);
+var $author$project$ProcGen$generate3Piece = function (level) {
+	var reqNum = $author$project$ProcGen$pRound(((level * 2) + 2) / 4);
+	return A3(
+		$elm$random$Random$map2,
+		F2(
+			function (shape, req) {
+				return {
+					borderTransform: {
+						rotate: 0,
+						translate: _Utils_Tuple2(0, 0)
+					},
+					drawPosition: $elm$core$Maybe$Nothing,
+					level: level,
+					positions: _List_Nil,
+					req: req,
+					score: $author$project$Board$emptyScore,
+					shape: shape
+				};
+			}),
+		A2(
+			$elm$random$Random$uniform,
+			$author$project$Board$Threei($author$project$Board$threeiStartIndex),
+			_List_fromArray(
+				[
+					$author$project$Board$Threel($author$project$Board$threelStartIndex)
+				])),
+		A2($elm$random$Random$andThen, $author$project$ProcGen$generateReq, reqNum));
+};
+var $author$project$Board$Fourl = function (a) {
+	return {$: 'Fourl', a: a};
+};
+var $author$project$Board$Fouro = function (a) {
+	return {$: 'Fouro', a: a};
+};
+var $author$project$Board$Fours = function (a) {
+	return {$: 'Fours', a: a};
+};
+var $author$project$Board$Fourt = function (a) {
+	return {$: 'Fourt', a: a};
+};
+var $author$project$Board$Fourz = function (a) {
+	return {$: 'Fourz', a: a};
+};
+var $author$project$Board$fourlStartIndex = _List_fromArray(
+	[
+		_Utils_Tuple2(0, 0),
+		_Utils_Tuple2(0, -1),
+		_Utils_Tuple2(0, 1),
+		_Utils_Tuple2(1, 1)
+	]);
+var $author$project$Board$fouroStartIndex = _List_fromArray(
+	[
+		_Utils_Tuple2(0, 0),
+		_Utils_Tuple2(1, 0),
+		_Utils_Tuple2(0, 1),
+		_Utils_Tuple2(1, 1)
+	]);
+var $author$project$Board$foursStartIndex = _List_fromArray(
+	[
+		_Utils_Tuple2(0, 0),
+		_Utils_Tuple2(1, 0),
+		_Utils_Tuple2(0, 1),
+		_Utils_Tuple2(-1, 1)
+	]);
+var $author$project$Board$fourtStartIndex = _List_fromArray(
+	[
+		_Utils_Tuple2(0, 0),
+		_Utils_Tuple2(-1, 0),
+		_Utils_Tuple2(1, 0),
+		_Utils_Tuple2(0, 1)
+	]);
+var $author$project$Board$fourzStartIndex = _List_fromArray(
+	[
+		_Utils_Tuple2(0, 0),
+		_Utils_Tuple2(-1, 0),
+		_Utils_Tuple2(0, 1),
+		_Utils_Tuple2(1, 1)
+	]);
+var $author$project$ProcGen$generate4Piece = function (level) {
+	var reqNum = $author$project$ProcGen$pRound(((level * 2) + 2) / 3);
+	return A3(
+		$elm$random$Random$map2,
+		F2(
+			function (shape, req) {
+				return {
+					borderTransform: {
+						rotate: 0,
+						translate: _Utils_Tuple2(0, 0)
+					},
+					drawPosition: $elm$core$Maybe$Nothing,
+					level: level,
+					positions: _List_Nil,
+					req: req,
+					score: $author$project$Board$emptyScore,
+					shape: shape
+				};
+			}),
+		A2(
+			$elm$random$Random$uniform,
+			$author$project$Board$Fouro($author$project$Board$fouroStartIndex),
+			_List_fromArray(
+				[
+					$author$project$Board$Fourt($author$project$Board$fourtStartIndex),
+					$author$project$Board$Fours($author$project$Board$foursStartIndex),
+					$author$project$Board$Fourz($author$project$Board$fourzStartIndex),
+					$author$project$Board$Fourl($author$project$Board$fourlStartIndex)
+				])),
+		A2($elm$random$Random$andThen, $author$project$ProcGen$generateReq, reqNum));
+};
+var $author$project$ProcGen$generatePieceDict = function (level) {
+	var nextPiece = F2(
+		function (randPieceList, size) {
+			var next = function () {
+				switch (size) {
+					case 2:
+						return $author$project$ProcGen$generate2Piece(level);
+					case 3:
+						return $author$project$ProcGen$generate3Piece(level);
+					default:
+						return $author$project$ProcGen$generate4Piece(level);
+				}
+			}();
+			return A3($elm$random$Random$map2, $elm$core$List$cons, next, randPieceList);
+		});
+	var go = F2(
+		function (sumLeft, pieceList) {
+			switch (sumLeft) {
+				case 0:
+					return pieceList;
+				case 2:
+					return A2(nextPiece, pieceList, 2);
+				case 3:
+					return A2(nextPiece, pieceList, 3);
+				case 4:
+					return A2(
+						$elm$random$Random$andThen,
+						function (randInt) {
+							return A2(
+								go,
+								sumLeft - randInt,
+								A2(nextPiece, pieceList, randInt));
+						},
+						A2(
+							$elm$random$Random$weighted,
+							_Utils_Tuple2(2, 2),
+							_List_fromArray(
+								[
+									_Utils_Tuple2(5, 4)
+								])));
+				case 5:
+					return A2(
+						$elm$random$Random$andThen,
+						function (randInt) {
+							return A2(
+								go,
+								sumLeft - randInt,
+								A2(nextPiece, pieceList, randInt));
+						},
+						A2(
+							$elm$random$Random$weighted,
+							_Utils_Tuple2(2, 2),
+							_List_fromArray(
+								[
+									_Utils_Tuple2(3, 3)
+								])));
+				default:
+					return A2(
+						$elm$random$Random$andThen,
+						function (randInt) {
+							return A2(
+								go,
+								sumLeft - randInt,
+								A2(nextPiece, pieceList, randInt));
+						},
+						A2(
+							$elm$random$Random$weighted,
+							_Utils_Tuple2(2, 2),
+							_List_fromArray(
+								[
+									_Utils_Tuple2(3, 3),
+									_Utils_Tuple2(5, 4)
+								])));
+			}
+		});
+	var fieldSum = 10 + (level * 2);
+	return A2(
+		$elm$random$Random$map,
+		A2(
+			$elm$core$Basics$composeL,
+			$elm$core$Dict$fromList,
+			$elm$core$List$indexedMap($elm$core$Tuple$pair)),
+		A2(
+			go,
+			fieldSum,
+			$elm$random$Random$constant(_List_Nil)));
+};
+var $elm_community$random_extra$Random$Extra$andThen2 = F3(
+	function (constructor, generatorA, generatorB) {
+		return A2(
+			$elm$random$Random$andThen,
+			function (a) {
+				return A2(
+					$elm$random$Random$andThen,
+					function (b) {
+						return A2(constructor, a, b);
+					},
+					generatorB);
+			},
+			generatorA);
+	});
+var $author$project$ProcGen$defaultTile = $elm$random$Random$constant(
+	{addBonus: 0, baseValue: 1, color: $author$project$Board$Green, currentValue: 1, drawPosition: $elm$core$Maybe$Nothing, level: 1, prodBonus: 0, properties: _List_Nil});
+var $author$project$ProcGen$generateBase = F2(
+	function (level, tile) {
+		var updateTileColor = F2(
+			function (col, uTile) {
+				return _Utils_update(
+					uTile,
+					{color: col});
+			});
+		var updateTileBaseVal = F3(
+			function (three, two, uTile) {
+				return three ? _Utils_update(
+					uTile,
+					{baseValue: 3}) : (two ? _Utils_update(
+					uTile,
+					{baseValue: 2}) : _Utils_update(
+					uTile,
+					{baseValue: 1}));
+			});
+		var is3Tile = A2(
+			$elm$random$Random$map,
+			$elm$core$Basics$gt((level * 0.015) + 0.05),
+			A2($elm$random$Random$float, 0, 1));
+		var is2Tile = A2(
+			$elm$random$Random$map,
+			$elm$core$Basics$gt((level * 0.025) + 0.15),
+			A2($elm$random$Random$float, 0, 1));
+		return A3(
+			$elm$random$Random$map2,
+			updateTileColor,
+			$author$project$ProcGen$generateColor,
+			A4(
+				$elm$random$Random$map3,
+				updateTileBaseVal,
+				is3Tile,
+				is2Tile,
+				$elm$random$Random$constant(tile)));
+	});
+var $author$project$ProcGen$avgRowReq = function (level) {
+	return ((level * 2) + 2) / 3;
+};
+var $author$project$Board$prop2Corn1 = _List_fromArray(
+	[
+		_Utils_Tuple2(1, 0),
+		_Utils_Tuple2(1, -1)
+	]);
+var $author$project$Board$prop2Corn2 = _List_fromArray(
+	[
+		_Utils_Tuple2(0, -1),
+		_Utils_Tuple2(1, -1)
+	]);
+var $author$project$Board$prop2OpCorn = _List_fromArray(
+	[
+		_Utils_Tuple2(1, -1),
+		_Utils_Tuple2(-1, 1)
+	]);
+var $author$project$Board$prop2OpEdge = _List_fromArray(
+	[
+		_Utils_Tuple2(0, -1),
+		_Utils_Tuple2(0, 1)
+	]);
+var $author$project$ProcGen$generate2Region = F2(
+	function (level, property) {
+		var update = F3(
+			function (requ, regi, prop) {
+				return _Utils_update(
+					prop,
+					{region: regi, reqValue: requ});
+			});
+		var req = $author$project$ProcGen$pRound(
+			$author$project$ProcGen$avgRowReq(level) / 2);
+		var region = A2(
+			$elm$random$Random$uniform,
+			$author$project$Board$prop2OpEdge,
+			_List_fromArray(
+				[$author$project$Board$prop2OpCorn, $author$project$Board$prop2Corn1, $author$project$Board$prop2Corn2]));
+		return A4(
+			$elm$random$Random$map3,
+			update,
+			req,
+			region,
+			$elm$random$Random$constant(property));
+	});
+var $author$project$Board$prop3Corn = _List_fromArray(
+	[
+		_Utils_Tuple2(0, -1),
+		_Utils_Tuple2(1, -1),
+		_Utils_Tuple2(1, 0)
+	]);
+var $author$project$Board$prop3Edge = _List_fromArray(
+	[
+		_Utils_Tuple2(1, -1),
+		_Utils_Tuple2(1, 0),
+		_Utils_Tuple2(1, 1)
+	]);
+var $author$project$ProcGen$generate3Region = F2(
+	function (level, property) {
+		var update = F3(
+			function (requ, regi, prop) {
+				return _Utils_update(
+					prop,
+					{region: regi, reqValue: requ});
+			});
+		var req = $author$project$ProcGen$pRound(
+			(3 * $author$project$ProcGen$avgRowReq(level)) / 4);
+		var region = A2(
+			$elm$random$Random$uniform,
+			$author$project$Board$prop3Corn,
+			_List_fromArray(
+				[$author$project$Board$prop3Edge]));
+		return A4(
+			$elm$random$Random$map3,
+			update,
+			req,
+			region,
+			$elm$random$Random$constant(property));
+	});
+var $author$project$Board$prop4Corn = _List_fromArray(
+	[
+		_Utils_Tuple2(-1, -1),
+		_Utils_Tuple2(1, -1),
+		_Utils_Tuple2(1, 1),
+		_Utils_Tuple2(-1, 1)
+	]);
+var $author$project$Board$prop4Double1 = _List_fromArray(
+	[
+		_Utils_Tuple2(-1, 0),
+		_Utils_Tuple2(-1, 1),
+		_Utils_Tuple2(1, 0),
+		_Utils_Tuple2(1, -1)
+	]);
+var $author$project$Board$prop4Double2 = _List_fromArray(
+	[
+		_Utils_Tuple2(-1, 0),
+		_Utils_Tuple2(-1, -1),
+		_Utils_Tuple2(1, 0),
+		_Utils_Tuple2(1, 1)
+	]);
+var $author$project$Board$prop4Edge = _List_fromArray(
+	[
+		_Utils_Tuple2(-1, 0),
+		_Utils_Tuple2(0, -1),
+		_Utils_Tuple2(1, 0),
+		_Utils_Tuple2(0, 1)
+	]);
+var $author$project$ProcGen$generate4Region = F2(
+	function (level, property) {
+		var update = F3(
+			function (requ, regi, prop) {
+				return _Utils_update(
+					prop,
+					{region: regi, reqValue: requ});
+			});
+		var req = $author$project$ProcGen$pRound(
+			$author$project$ProcGen$avgRowReq(level));
+		var region = A2(
+			$elm$random$Random$uniform,
+			$author$project$Board$prop4Edge,
+			_List_fromArray(
+				[$author$project$Board$prop4Corn, $author$project$Board$prop4Double1, $author$project$Board$prop4Double2]));
+		return A4(
+			$elm$random$Random$map3,
+			update,
+			req,
+			region,
+			$elm$random$Random$constant(property));
+	});
+var $author$project$ProcGen$addBonusChances = _List_fromArray(
+	[
+		_Utils_Tuple2(0.001, 0),
+		_Utils_Tuple2(0.002, 0),
+		_Utils_Tuple2(0.004, 0),
+		_Utils_Tuple2(0.008, 0.02),
+		_Utils_Tuple2(0.016, 0.05),
+		_Utils_Tuple2(0.024, 0.1),
+		_Utils_Tuple2(0.032, 0.1)
+	]);
+var $author$project$ProcGen$generateAddBonus = function (level) {
+	var go = function (chanceValPairs) {
+		if (chanceValPairs.b) {
+			var _v1 = chanceValPairs.a;
+			var chance = _v1.a;
+			var val = _v1.b;
+			var cs = chanceValPairs.b;
+			return A2(
+				$elm$random$Random$andThen,
+				function (roll) {
+					return (_Utils_cmp(roll, chance) < 0) ? $elm$random$Random$constant(val) : go(cs);
+				},
+				A2($elm$random$Random$float, 0, 1));
+		} else {
+			return $elm$random$Random$constant(0);
+		}
+	};
+	var chances = A2(
+		$elm_community$list_extra$List$Extra$zip,
+		A2(
+			$elm$core$List$map,
+			function (_v2) {
+				var scale = _v2.a;
+				var base = _v2.b;
+				return (level * scale) + base;
+			},
+			$author$project$ProcGen$addBonusChances),
+		_List_fromArray(
+			[4, 3.5, 3, 2.5, 2, 1.5, 1]));
+	return go(chances);
+};
+var $author$project$ProcGen$prodBonusChances = _List_fromArray(
+	[
+		_Utils_Tuple2(0.008, 0),
+		_Utils_Tuple2(0.016, 0.1),
+		_Utils_Tuple2(0.032, 0.1)
+	]);
+var $author$project$ProcGen$generateProdBonus = function (level) {
+	var go = function (chanceValPairs) {
+		if (chanceValPairs.b) {
+			var _v1 = chanceValPairs.a;
+			var chance = _v1.a;
+			var val = _v1.b;
+			var cs = chanceValPairs.b;
+			return A2(
+				$elm$random$Random$andThen,
+				function (roll) {
+					return (_Utils_cmp(roll, chance) < 0) ? $elm$random$Random$constant(val) : go(cs);
+				},
+				A2($elm$random$Random$float, 0, 1));
+		} else {
+			return $elm$random$Random$constant(0);
+		}
+	};
+	var chances = A2(
+		$elm_community$list_extra$List$Extra$zip,
+		A2(
+			$elm$core$List$map,
+			function (_v2) {
+				var scale = _v2.a;
+				var base = _v2.b;
+				return (level * scale) + base;
+			},
+			$author$project$ProcGen$prodBonusChances),
+		_List_fromArray(
+			[1.5, 1, 0.5]));
+	return go(chances);
+};
+var $author$project$ProcGen$generateProperty = function (level) {
+	var bonus = A3(
+		$elm$random$Random$map2,
+		F2(
+			function (add, prod) {
+				return ((!add) && (!prod)) ? _Utils_Tuple2(1, 0) : _Utils_Tuple2(add, prod);
+			}),
+		$author$project$ProcGen$generateAddBonus(level),
+		$author$project$ProcGen$generateProdBonus(level));
+	var baseProp = A3(
+		$elm$random$Random$map2,
+		F2(
+			function (color, _v1) {
+				var add = _v1.a;
+				var prod = _v1.b;
+				return {addBonus: add, isMet: false, prodBonus: prod, region: _List_Nil, reqColor: color, reqValue: 0};
+			}),
+		$author$project$ProcGen$generateColor,
+		bonus);
+	var addRegion = F2(
+		function (prop, size) {
+			switch (size) {
+				case 2:
+					return A2(
+						$elm$random$Random$andThen,
+						$author$project$ProcGen$generate2Region(level),
+						prop);
+				case 3:
+					return A2(
+						$elm$random$Random$andThen,
+						$author$project$ProcGen$generate3Region(level),
+						prop);
+				default:
+					return A2(
+						$elm$random$Random$andThen,
+						$author$project$ProcGen$generate4Region(level),
+						prop);
+			}
+		});
+	return A2(
+		$elm$random$Random$andThen,
+		addRegion(baseProp),
+		A2(
+			$elm$random$Random$weighted,
+			_Utils_Tuple2(4, 2),
+			_List_fromArray(
+				[
+					_Utils_Tuple2(2, 3),
+					_Utils_Tuple2(4, 4)
+				])));
+};
+var $elm$random$Random$listHelp = F4(
+	function (revList, n, gen, seed) {
+		listHelp:
 		while (true) {
-			var pos = $elm$core$Array$bitMask & (index >>> shift);
-			var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
-			if (_v0.$ === 'SubTree') {
-				var subTree = _v0.a;
-				var $temp$shift = shift - $elm$core$Array$shiftStep,
-					$temp$index = index,
-					$temp$tree = subTree;
-				shift = $temp$shift;
-				index = $temp$index;
-				tree = $temp$tree;
-				continue getHelp;
+			if (n < 1) {
+				return _Utils_Tuple2(revList, seed);
 			} else {
-				var values = _v0.a;
-				return A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, values);
+				var _v0 = gen(seed);
+				var value = _v0.a;
+				var newSeed = _v0.b;
+				var $temp$revList = A2($elm$core$List$cons, value, revList),
+					$temp$n = n - 1,
+					$temp$gen = gen,
+					$temp$seed = newSeed;
+				revList = $temp$revList;
+				n = $temp$n;
+				gen = $temp$gen;
+				seed = $temp$seed;
+				continue listHelp;
 			}
 		}
 	});
-var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
-var $elm$core$Array$tailIndex = function (len) {
-	return (len >>> 5) << 5;
+var $elm$random$Random$list = F2(
+	function (n, _v0) {
+		var gen = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed) {
+				return A4($elm$random$Random$listHelp, _List_Nil, n, gen, seed);
+			});
+	});
+var $author$project$ProcGen$generateTile = function (level) {
+	var genProperties = F2(
+		function (roll1, roll2) {
+			return (_Utils_cmp(roll1, level) < 1) ? ((_Utils_cmp(roll1 + roll2, level) < 1) ? A2(
+				$elm$random$Random$list,
+				2,
+				$author$project$ProcGen$generateProperty(level)) : A2(
+				$elm$random$Random$list,
+				1,
+				$author$project$ProcGen$generateProperty(level))) : $elm$random$Random$constant(_List_Nil);
+		});
+	var baseTile = A2(
+		$elm$random$Random$andThen,
+		$author$project$ProcGen$generateBase(level),
+		$author$project$ProcGen$defaultTile);
+	return A3(
+		$elm$random$Random$map2,
+		F2(
+			function (tile, props) {
+				return _Utils_update(
+					tile,
+					{properties: props});
+			}),
+		baseTile,
+		A3(
+			$elm_community$random_extra$Random$Extra$andThen2,
+			genProperties,
+			A2($elm$random$Random$int, 1, 8),
+			A2($elm$random$Random$int, 1, 8)));
 };
-var $elm$core$Array$get = F2(
-	function (index, _v0) {
-		var len = _v0.a;
-		var startShift = _v0.b;
-		var tree = _v0.c;
-		var tail = _v0.d;
-		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? $elm$core$Maybe$Nothing : ((_Utils_cmp(
-			index,
-			$elm$core$Array$tailIndex(len)) > -1) ? $elm$core$Maybe$Just(
-			A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, tail)) : $elm$core$Maybe$Just(
-			A3($elm$core$Array$getHelp, startShift, index, tree)));
-	});
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
-var $elm$core$Array$setHelp = F4(
-	function (shift, index, value, tree) {
-		var pos = $elm$core$Array$bitMask & (index >>> shift);
-		var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
-		if (_v0.$ === 'SubTree') {
-			var subTree = _v0.a;
-			var newSub = A4($elm$core$Array$setHelp, shift - $elm$core$Array$shiftStep, index, value, subTree);
-			return A3(
-				$elm$core$Elm$JsArray$unsafeSet,
-				pos,
-				$elm$core$Array$SubTree(newSub),
-				tree);
-		} else {
-			var values = _v0.a;
-			var newLeaf = A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, values);
-			return A3(
-				$elm$core$Elm$JsArray$unsafeSet,
-				pos,
-				$elm$core$Array$Leaf(newLeaf),
-				tree);
-		}
-	});
-var $elm$core$Array$set = F3(
-	function (index, value, array) {
-		var len = array.a;
-		var startShift = array.b;
-		var tree = array.c;
-		var tail = array.d;
-		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? array : ((_Utils_cmp(
-			index,
-			$elm$core$Array$tailIndex(len)) > -1) ? A4(
-			$elm$core$Array$Array_elm_builtin,
-			len,
-			startShift,
-			tree,
-			A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, tail)) : A4(
-			$elm$core$Array$Array_elm_builtin,
-			len,
-			startShift,
-			A4($elm$core$Array$setHelp, startShift, index, value, tree),
-			tail));
-	});
-var $author$project$Board$set = F3(
-	function (_v0, field, board) {
-		var xIndex = _v0.a;
-		var yIndex = _v0.b;
-		var mRow = A2(
-			$elm$core$Maybe$map,
-			A2($elm$core$Array$set, xIndex, field),
-			A2($elm$core$Array$get, yIndex, board.tiles));
-		if (mRow.$ === 'Nothing') {
-			return board;
-		} else {
-			var row = mRow.a;
-			return _Utils_update(
-				board,
-				{
-					tiles: A3($elm$core$Array$set, yIndex, row, board.tiles)
-				});
-		}
-	});
+var $author$project$Crafting$Augmentation = {$: 'Augmentation'};
+var $author$project$Crafting$emptyOrbs = _List_fromArray(
+	[
+		_Utils_Tuple2($author$project$Board$Purple, 0),
+		_Utils_Tuple2($author$project$Board$Green, 0),
+		_Utils_Tuple2($author$project$Board$Yellow, 0),
+		_Utils_Tuple2($author$project$Board$Orange, 0)
+	]);
+var $author$project$Crafting$Alteration = {$: 'Alteration'};
+var $author$project$Crafting$Distillation = {$: 'Distillation'};
+var $author$project$Crafting$Modification = {$: 'Modification'};
+var $author$project$Crafting$emptyScrolls = _List_fromArray(
+	[
+		_Utils_Tuple2($author$project$Crafting$Modification, 0),
+		_Utils_Tuple2($author$project$Crafting$Augmentation, 0),
+		_Utils_Tuple2($author$project$Crafting$Alteration, 0),
+		_Utils_Tuple2($author$project$Crafting$Distillation, 0)
+	]);
+var $author$project$Crafting$init = {
+	orbs: $author$project$Crafting$emptyOrbs,
+	scrolls: $author$project$Crafting$emptyScrolls,
+	selectedEssence: $elm$core$Maybe$Nothing,
+	selectedOrbs: _List_Nil,
+	selectedScroll: $elm$core$Maybe$Just($author$project$Crafting$Augmentation),
+	tile: $elm$core$Maybe$Nothing
+};
 var $author$project$Demo$initBoard = A2(
 	$elm$core$Basics$composeL,
 	A2(
@@ -5451,14 +6900,14 @@ var $author$project$Demo$initBoard = A2(
 	{
 		colReqs: A3(
 			$elm$core$Dict$insert,
-			3,
+			2,
 			_Utils_Tuple2(
 				_List_fromArray(
 					[
-						_Utils_Tuple2($author$project$Board$Purple, 4),
-						_Utils_Tuple2($author$project$Board$Green, 0),
-						_Utils_Tuple2($author$project$Board$Yellow, 0),
-						_Utils_Tuple2($author$project$Board$Orange, 1)
+						_Utils_Tuple2($author$project$Board$Purple, 0),
+						_Utils_Tuple2($author$project$Board$Green, 3),
+						_Utils_Tuple2($author$project$Board$Yellow, 2),
+						_Utils_Tuple2($author$project$Board$Orange, 0)
 					]),
 				$author$project$Board$emptyScore),
 			$elm$core$Dict$empty),
@@ -5466,17 +6915,29 @@ var $author$project$Demo$initBoard = A2(
 		pieces: $elm$core$Dict$empty,
 		rowReqs: A3(
 			$elm$core$Dict$insert,
-			3,
+			1,
 			_Utils_Tuple2(
 				_List_fromArray(
 					[
-						_Utils_Tuple2($author$project$Board$Purple, 4),
-						_Utils_Tuple2($author$project$Board$Green, 0),
+						_Utils_Tuple2($author$project$Board$Purple, 3),
+						_Utils_Tuple2($author$project$Board$Green, 2),
 						_Utils_Tuple2($author$project$Board$Yellow, 0),
-						_Utils_Tuple2($author$project$Board$Orange, 1)
+						_Utils_Tuple2($author$project$Board$Orange, 0)
 					]),
 				$author$project$Board$emptyScore),
-			$elm$core$Dict$empty),
+			A3(
+				$elm$core$Dict$insert,
+				3,
+				_Utils_Tuple2(
+					_List_fromArray(
+						[
+							_Utils_Tuple2($author$project$Board$Purple, 0),
+							_Utils_Tuple2($author$project$Board$Green, 0),
+							_Utils_Tuple2($author$project$Board$Yellow, 2),
+							_Utils_Tuple2($author$project$Board$Orange, 2)
+						]),
+					$author$project$Board$emptyScore),
+				$elm$core$Dict$empty)),
 		tiles: A2(
 			$elm$core$Array$repeat,
 			4,
@@ -5485,34 +6946,20 @@ var $author$project$Demo$initBoard = A2(
 				4,
 				$author$project$Board$NonTile(false)))
 	});
-var $elm$core$Dict$fromList = function (assocs) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (_v0, dict) {
-				var key = _v0.a;
-				var value = _v0.b;
-				return A3($elm$core$Dict$insert, key, value, dict);
-			}),
-		$elm$core$Dict$empty,
-		assocs);
-};
-var $author$project$Board$Twoi = function (a) {
-	return {$: 'Twoi', a: a};
-};
 var $author$project$Demo$probaPiece = {
 	borderTransform: {
 		rotate: 0,
 		translate: _Utils_Tuple2(0, 0)
 	},
 	drawPosition: $elm$core$Maybe$Nothing,
+	level: 1,
 	positions: _List_Nil,
 	req: _List_fromArray(
 		[
-			_Utils_Tuple2($author$project$Board$Purple, 4),
+			_Utils_Tuple2($author$project$Board$Purple, 3),
 			_Utils_Tuple2($author$project$Board$Green, 0),
 			_Utils_Tuple2($author$project$Board$Yellow, 0),
-			_Utils_Tuple2($author$project$Board$Orange, 1)
+			_Utils_Tuple2($author$project$Board$Orange, 0)
 		]),
 	score: $author$project$Board$emptyScore,
 	shape: $author$project$Board$Twoi(
@@ -5522,25 +6969,20 @@ var $author$project$Demo$probaPiece = {
 				_Utils_Tuple2(0, 1)
 			]))
 };
-var $author$project$Board$Threel = function (a) {
-	return {$: 'Threel', a: a};
-};
-var $elm$core$Basics$negate = function (n) {
-	return -n;
-};
 var $author$project$Demo$probaPiece2 = {
 	borderTransform: {
 		rotate: 0,
 		translate: _Utils_Tuple2(0, 0)
 	},
 	drawPosition: $elm$core$Maybe$Nothing,
+	level: 1,
 	positions: _List_Nil,
 	req: _List_fromArray(
 		[
-			_Utils_Tuple2($author$project$Board$Purple, 4),
-			_Utils_Tuple2($author$project$Board$Green, 0),
+			_Utils_Tuple2($author$project$Board$Purple, 2),
+			_Utils_Tuple2($author$project$Board$Green, 2),
 			_Utils_Tuple2($author$project$Board$Yellow, 0),
-			_Utils_Tuple2($author$project$Board$Orange, 1)
+			_Utils_Tuple2($author$project$Board$Orange, 0)
 		]),
 	score: $author$project$Board$emptyScore,
 	shape: $author$project$Board$Threel(
@@ -5551,21 +6993,19 @@ var $author$project$Demo$probaPiece2 = {
 				_Utils_Tuple2(1, 0)
 			]))
 };
-var $author$project$Board$Threei = function (a) {
-	return {$: 'Threei', a: a};
-};
 var $author$project$Demo$probaPiece3 = {
 	borderTransform: {
 		rotate: 0,
 		translate: _Utils_Tuple2(0, 0)
 	},
 	drawPosition: $elm$core$Maybe$Nothing,
+	level: 1,
 	positions: _List_Nil,
 	req: _List_fromArray(
 		[
-			_Utils_Tuple2($author$project$Board$Purple, 2),
-			_Utils_Tuple2($author$project$Board$Green, 0),
-			_Utils_Tuple2($author$project$Board$Yellow, 0),
+			_Utils_Tuple2($author$project$Board$Purple, 0),
+			_Utils_Tuple2($author$project$Board$Green, 2),
+			_Utils_Tuple2($author$project$Board$Yellow, 2),
 			_Utils_Tuple2($author$project$Board$Orange, 0)
 		]),
 	score: $author$project$Board$emptyScore,
@@ -5584,48 +7024,54 @@ var $author$project$Demo$initPieces = $elm$core$Dict$fromList(
 			_Utils_Tuple2(1, $author$project$Demo$probaPiece2),
 			_Utils_Tuple2(2, $author$project$Demo$probaPiece3)
 		]));
+var $author$project$Demo$probaTile = {addBonus: 0, baseValue: 1, color: $author$project$Board$Green, currentValue: 1, drawPosition: $elm$core$Maybe$Nothing, level: 1, prodBonus: 0, properties: _List_Nil};
 var $author$project$Demo$probaProperty = {
 	addBonus: 1,
 	isMet: false,
 	prodBonus: 0,
 	region: _List_fromArray(
 		[
-			_Utils_Tuple2(1, 1),
-			_Utils_Tuple2(1, 0)
+			_Utils_Tuple2(1, 0),
+			_Utils_Tuple2(1, -1)
 		]),
-	reqColor: $author$project$Board$Orange,
-	reqValue: 1
+	reqColor: $author$project$Board$Green,
+	reqValue: 2
 };
-var $author$project$Demo$probaTile = {
+var $author$project$Demo$probaProperty2 = {
+	addBonus: 0,
+	isMet: false,
+	prodBonus: 1,
+	region: _List_fromArray(
+		[
+			_Utils_Tuple2(1, 0),
+			_Utils_Tuple2(1, 1)
+		]),
+	reqColor: $author$project$Board$Green,
+	reqValue: 3
+};
+var $author$project$Demo$probaTile2 = {
 	addBonus: 0,
 	baseValue: 1,
 	color: $author$project$Board$Purple,
 	currentValue: 1,
 	drawPosition: $elm$core$Maybe$Nothing,
-	prodBonus: 0,
-	properties: _List_fromArray(
-		[$author$project$Demo$probaProperty])
-};
-var $author$project$Demo$probaProperty2 = {
-	addBonus: 1,
-	isMet: false,
-	prodBonus: 0,
-	region: _List_fromArray(
-		[
-			_Utils_Tuple2(-1, -1)
-		]),
-	reqColor: $author$project$Board$Purple,
-	reqValue: 2
-};
-var $author$project$Demo$probaTile2 = {
-	addBonus: 0,
-	baseValue: 1,
-	color: $author$project$Board$Orange,
-	currentValue: 1,
-	drawPosition: $elm$core$Maybe$Nothing,
+	level: 1,
 	prodBonus: 0,
 	properties: _List_fromArray(
 		[$author$project$Demo$probaProperty2, $author$project$Demo$probaProperty])
+};
+var $author$project$Demo$probaProperty3 = {
+	addBonus: 0,
+	isMet: false,
+	prodBonus: 1,
+	region: _List_fromArray(
+		[
+			_Utils_Tuple2(1, 0),
+			_Utils_Tuple2(1, -1),
+			_Utils_Tuple2(0, -1)
+		]),
+	reqColor: $author$project$Board$Purple,
+	reqValue: 2
 };
 var $author$project$Demo$probaTile3 = {
 	addBonus: 0,
@@ -5633,19 +7079,80 @@ var $author$project$Demo$probaTile3 = {
 	color: $author$project$Board$Green,
 	currentValue: 1,
 	drawPosition: $elm$core$Maybe$Nothing,
+	level: 1,
 	prodBonus: 0,
 	properties: _List_fromArray(
-		[$author$project$Demo$probaProperty])
+		[$author$project$Demo$probaProperty3])
+};
+var $author$project$Demo$probaProperty4 = {
+	addBonus: 0,
+	isMet: false,
+	prodBonus: 1,
+	region: _List_fromArray(
+		[
+			_Utils_Tuple2(1, 0),
+			_Utils_Tuple2(1, -1),
+			_Utils_Tuple2(0, -1)
+		]),
+	reqColor: $author$project$Board$Green,
+	reqValue: 1
 };
 var $author$project$Demo$probaTile4 = {
+	addBonus: 0,
+	baseValue: 1,
+	color: $author$project$Board$Orange,
+	currentValue: 1,
+	drawPosition: $elm$core$Maybe$Nothing,
+	level: 1,
+	prodBonus: 0,
+	properties: _List_fromArray(
+		[$author$project$Demo$probaProperty4])
+};
+var $author$project$Demo$probaProperty5 = {
+	addBonus: 1,
+	isMet: false,
+	prodBonus: 0,
+	region: _List_fromArray(
+		[
+			_Utils_Tuple2(0, -1),
+			_Utils_Tuple2(0, 1)
+		]),
+	reqColor: $author$project$Board$Orange,
+	reqValue: 2
+};
+var $author$project$Demo$probaTile5 = {
 	addBonus: 0,
 	baseValue: 1,
 	color: $author$project$Board$Yellow,
 	currentValue: 1,
 	drawPosition: $elm$core$Maybe$Nothing,
+	level: 1,
 	prodBonus: 0,
 	properties: _List_fromArray(
-		[$author$project$Demo$probaProperty])
+		[$author$project$Demo$probaProperty5])
+};
+var $author$project$Demo$probaProperty6 = {
+	addBonus: 1,
+	isMet: false,
+	prodBonus: 0,
+	region: _List_fromArray(
+		[
+			_Utils_Tuple2(0, -1),
+			_Utils_Tuple2(1, 0)
+		]),
+	reqColor: $author$project$Board$Yellow,
+	reqValue: 2
+};
+var $author$project$Demo$probaTile6 = {
+	addBonus: 0,
+	baseValue: 1,
+	color: $author$project$Board$Green,
+	currentValue: 1,
+	drawPosition: $elm$core$Maybe$Nothing,
+	level: 1,
+	prodBonus: 0,
+	properties: _List_fromArray(
+		[$author$project$Demo$probaProperty6])
 };
 var $author$project$Demo$initTiles = $elm$core$Dict$fromList(
 	_List_fromArray(
@@ -5653,14 +7160,15 @@ var $author$project$Demo$initTiles = $elm$core$Dict$fromList(
 			_Utils_Tuple2(0, $author$project$Demo$probaTile),
 			_Utils_Tuple2(1, $author$project$Demo$probaTile2),
 			_Utils_Tuple2(2, $author$project$Demo$probaTile3),
-			_Utils_Tuple2(3, $author$project$Demo$probaTile4)
+			_Utils_Tuple2(3, $author$project$Demo$probaTile4),
+			_Utils_Tuple2(4, $author$project$Demo$probaTile5),
+			_Utils_Tuple2(5, $author$project$Demo$probaTile6)
 		]));
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
 		{
 			board: $author$project$Demo$initBoard,
+			craftingTable: $author$project$Crafting$init,
 			dragedItem: $author$project$Board$None,
 			hoveredPiece: $elm$core$Maybe$Nothing,
 			hoveredTile: $elm$core$Maybe$Nothing,
@@ -5669,7 +7177,25 @@ var $author$project$Main$init = function (_v0) {
 			showTileTooltip: false,
 			tiles: $author$project$Demo$initTiles
 		},
-		$elm$core$Platform$Cmd$none);
+		$elm$core$Platform$Cmd$batch(
+			_List_fromArray(
+				[
+					A2(
+					$elm$random$Random$generate,
+					$author$project$Main$NewBoard,
+					$author$project$ProcGen$generateBoard(2)),
+					A2(
+					$elm$random$Random$generate,
+					$author$project$Main$NewPieceDict,
+					$author$project$ProcGen$generatePieceDict(2)),
+					A2(
+					$elm$random$Random$generate,
+					$author$project$Main$NewTileList,
+					A2(
+						$elm$random$Random$list,
+						12,
+						$author$project$ProcGen$generateTile(2)))
+				])));
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$json$Json$Decode$field = _Json_decodeField;
@@ -6151,6 +7677,7 @@ var $author$project$Board$addToTileDict = F2(
 				{drawPosition: $elm$core$Maybe$Nothing}),
 			dict);
 	});
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $elm$core$Dict$getMin = function (dict) {
 	getMin:
 	while (true) {
@@ -6586,10 +8113,6 @@ var $author$project$Board$removeHighlight = function (board) {
 		highlightedTiles,
 		{highlight: _List_Nil});
 };
-var $elm$core$Tuple$second = function (_v0) {
-	var y = _v0.b;
-	return y;
-};
 var $elm$core$Dict$get = F2(
 	function (targetKey, dict) {
 		get:
@@ -6663,7 +8186,12 @@ var $author$project$Main$dragEnd = F2(
 						return _Utils_update(
 							model,
 							{
-								pieces: A2($author$project$Board$addToPieceDict, piece, model.pieces).b
+								pieces: A2(
+									$author$project$Board$addToPieceDict,
+									_Utils_update(
+										piece,
+										{drawPosition: $elm$core$Maybe$Nothing, positions: _List_Nil}),
+									model.pieces).b
 							});
 					case 'DragTileFromBoard':
 						var tile = _v1.a;
@@ -6682,7 +8210,10 @@ var $author$project$Main$dragEnd = F2(
 									$elm$core$Dict$update,
 									pieceId,
 									function (_v2) {
-										return $elm$core$Maybe$Just(piece);
+										return $elm$core$Maybe$Just(
+											_Utils_update(
+												piece,
+												{drawPosition: $elm$core$Maybe$Nothing, positions: _List_Nil}));
 									},
 									model.pieces)
 							});
@@ -6767,6 +8298,21 @@ var $author$project$Board$shapeToIndexes = function (shape) {
 			var indexes = shape.a;
 			return indexes;
 		case 'Threel':
+			var indexes = shape.a;
+			return indexes;
+		case 'Threei':
+			var indexes = shape.a;
+			return indexes;
+		case 'Fouro':
+			var indexes = shape.a;
+			return indexes;
+		case 'Fourt':
+			var indexes = shape.a;
+			return indexes;
+		case 'Fours':
+			var indexes = shape.a;
+			return indexes;
+		case 'Fourz':
 			var indexes = shape.a;
 			return indexes;
 		default:
@@ -6908,9 +8454,6 @@ var $author$project$Board$neighbourIndexes = function (_v0) {
 			},
 			difs));
 };
-var $elm$core$List$sum = function (numbers) {
-	return A3($elm$core$List$foldl, $elm$core$Basics$add, 0, numbers);
-};
 var $author$project$Board$checkProperty = F3(
 	function (_v0, property, board) {
 		var xIndex = _v0.a;
@@ -6977,7 +8520,7 @@ var $author$project$Board$updateTile = F3(
 			tile,
 			{
 				addBonus: addBonus,
-				currentValue: $elm$core$Basics$floor(tile.baseValue * (prodBonus + 1)) + addBonus,
+				currentValue: $elm$core$Basics$floor((tile.baseValue * (prodBonus + 1)) + addBonus),
 				prodBonus: prodBonus,
 				properties: checkedProps
 			});
@@ -7003,23 +8546,6 @@ var $author$project$Board$checkAroundTile = F2(
 				}
 			},
 			$author$project$Board$neighbourIndexes(tileIndex));
-	});
-var $elm$core$Tuple$mapSecond = F2(
-	function (func, _v0) {
-		var x = _v0.a;
-		var y = _v0.b;
-		return _Utils_Tuple2(
-			x,
-			func(y));
-	});
-var $elm_community$list_extra$List$Extra$updateIf = F3(
-	function (predicate, update, list) {
-		return A2(
-			$elm$core$List$map,
-			function (item) {
-				return predicate(item) ? update(item) : item;
-			},
-			list);
 	});
 var $author$project$Board$addScoresInRegion = F2(
 	function (board, region) {
@@ -7386,9 +8912,29 @@ var $author$project$Board$shapeMap = F2(
 				var indexes = shape.a;
 				return $author$project$Board$Threel(
 					f(indexes));
-			default:
+			case 'Threei':
 				var indexes = shape.a;
 				return $author$project$Board$Threei(
+					f(indexes));
+			case 'Fouro':
+				var indexes = shape.a;
+				return $author$project$Board$Fouro(
+					f(indexes));
+			case 'Fourt':
+				var indexes = shape.a;
+				return $author$project$Board$Fourt(
+					f(indexes));
+			case 'Fours':
+				var indexes = shape.a;
+				return $author$project$Board$Fours(
+					f(indexes));
+			case 'Fourz':
+				var indexes = shape.a;
+				return $author$project$Board$Fourz(
+					f(indexes));
+			default:
+				var indexes = shape.a;
+				return $author$project$Board$Fourl(
 					f(indexes));
 		}
 	});
@@ -7535,6 +9081,38 @@ var $author$project$Board$translatePiece = F2(
 					{borderTransform: newTransform}));
 		} else {
 			return piece;
+		}
+	});
+var $author$project$Crafting$update = F2(
+	function (msg, state) {
+		switch (msg.$) {
+			case 'Craft':
+				return state;
+			case 'ScrollSelected':
+				var scroll = msg.a;
+				return _Utils_eq(
+					$elm$core$Maybe$Just(scroll),
+					state.selectedScroll) ? _Utils_update(
+					state,
+					{selectedScroll: $elm$core$Maybe$Nothing}) : _Utils_update(
+					state,
+					{
+						selectedScroll: $elm$core$Maybe$Just(scroll)
+					});
+			default:
+				var orb = msg.a;
+				return A2($elm$core$List$member, orb, state.selectedOrbs) ? _Utils_update(
+					state,
+					{
+						selectedOrbs: A2($elm_community$list_extra$List$Extra$remove, orb, state.selectedOrbs)
+					}) : _Utils_update(
+					state,
+					{
+						selectedOrbs: A2(
+							$elm$core$List$take,
+							2,
+							A2($elm$core$List$cons, orb, state.selectedOrbs))
+					});
 		}
 	});
 var $author$project$Main$updateDrag = F2(
@@ -7769,7 +9347,7 @@ var $author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
-			default:
+			case 'MousePosition':
 				var x = msg.a;
 				var y = msg.b;
 				return _Utils_Tuple2(
@@ -7777,6 +9355,39 @@ var $author$project$Main$update = F2(
 						model,
 						{
 							mousePos: _Utils_Tuple2(x, y)
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'NewBoard':
+				var board = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{board: board}),
+					$elm$core$Platform$Cmd$none);
+			case 'NewPieceDict':
+				var pieceDict = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{pieces: pieceDict}),
+					$elm$core$Platform$Cmd$none);
+			case 'NewTileList':
+				var tiles = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							tiles: $elm$core$Dict$fromList(
+								A2($elm$core$List$indexedMap, $elm$core$Tuple$pair, tiles))
+						}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				var craftingMsg = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							craftingTable: A2($author$project$Crafting$update, craftingMsg, model.craftingTable)
 						}),
 					$elm$core$Platform$Cmd$none);
 		}
@@ -7994,6 +9605,13 @@ var $author$project$Board$drawReqMet = function (isMet) {
 			]));
 };
 var $elm$core$String$fromFloat = _String_fromNumber;
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $author$project$Board$drawTileTooltip = function (tile) {
 	return A2(
@@ -8004,7 +9622,16 @@ var $author$project$Board$drawTileTooltip = function (tile) {
 				A2($elm$html$Html$Attributes$style, 'font-size', '1.4rem'),
 				A2($elm$html$Html$Attributes$style, 'width', 'max-content')
 			]),
-		A2(
+		$elm$core$List$isEmpty(tile.properties) ? _List_fromArray(
+			[
+				A2(
+				$elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('No properties')
+					]))
+			]) : A2(
 			$elm$core$List$map,
 			function (pr) {
 				return A2(
@@ -8021,7 +9648,7 @@ var $author$project$Board$drawTileTooltip = function (tile) {
 								$elm$core$String$fromInt(pr.reqValue) + ' '),
 								A2($author$project$Board$drawRegion, pr.region, pr.reqColor),
 								$elm$html$Html$text(
-								' ' + ($elm$core$String$fromFloat(pr.prodBonus) + ('x + ' + $elm$core$String$fromInt(pr.addBonus))))
+								' ' + ($elm$core$String$fromFloat(pr.prodBonus) + ('x + ' + $elm$core$String$fromFloat(pr.addBonus))))
 							])));
 			},
 			tile.properties));
@@ -8046,6 +9673,9 @@ var $elm$html$Html$Events$onMouseUp = function (msg) {
 var $elm$core$List$singleton = function (value) {
 	return _List_fromArray(
 		[value]);
+};
+var $author$project$Main$CraftingMsg = function (a) {
+	return {$: 'CraftingMsg', a: a};
 };
 var $author$project$Board$DragFromHandStart = function (a) {
 	return {$: 'DragFromHandStart', a: a};
@@ -8090,8 +9720,18 @@ var $author$project$Board$drawPieceBorder = function (piece) {
 				return A2(drawPath, cord, ' h 52 v 104 h -52 v -105');
 			case 'Threel':
 				return A2(drawPath, cord, ' v 52 h 104 v -52 h -52 v -52 h -52 v 52');
-			default:
+			case 'Threei':
 				return A2(drawPath, cord, ' v 104 h 52 v -156 h -52 v 52');
+			case 'Fouro':
+				return A2(drawPath, cord, ' h 104 v 104 h -104 v -105');
+			case 'Fourt':
+				return A2(drawPath, cord, ' h 104 v 52 h -52 v 52 h -52 v -52 h -52 v -52 h 52');
+			case 'Fours':
+				return A2(drawPath, cord, ' h 104 v 52 h -52 v 52 h -104 v -52 h 52 v -53');
+			case 'Fourz':
+				return A2(drawPath, cord, ' h 52 v 52 h 52 v 52 h -104 v -52 h -52 v -52 h 52');
+			default:
+				return A2(drawPath, cord, ' v 104 h 104 v -52 h -52 v -104 h -52 v 52');
 		}
 	};
 	var _v1 = piece.drawPosition;
@@ -8325,6 +9965,148 @@ var $author$project$Board$drawTileIcon = F2(
 	});
 var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
 var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
+var $author$project$Crafting$Craft = {$: 'Craft'};
+var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $author$project$Crafting$OrbSelected = function (a) {
+	return {$: 'OrbSelected', a: a};
+};
+var $author$project$Crafting$viewOrbs = F2(
+	function (orbs, selected) {
+		var highlight = function (orb) {
+			return A2($elm$core$List$member, orb, selected) ? A2($elm$html$Html$Attributes$style, 'border', '3px solid black') : A2($elm$html$Html$Attributes$style, 'border', 'none');
+		};
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					A2($elm$html$Html$Attributes$style, 'background-color', 'grey'),
+					A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+					A2($elm$html$Html$Attributes$style, 'flex-direction', 'column'),
+					A2($elm$html$Html$Attributes$style, 'justify-content', 'space-between')
+				]),
+			A2(
+				$elm$core$List$map,
+				function (_v0) {
+					var orb = _v0.a;
+					var quant = _v0.b;
+					return A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								highlight(orb),
+								$elm$html$Html$Events$onClick(
+								$author$project$Crafting$OrbSelected(orb))
+							]),
+						_List_fromArray(
+							[
+								$author$project$Board$drawColorCircle(orb),
+								$elm$html$Html$text(
+								': ' + $elm$core$String$fromInt(quant))
+							]));
+				},
+				orbs));
+	});
+var $author$project$Crafting$ScrollSelected = function (a) {
+	return {$: 'ScrollSelected', a: a};
+};
+var $author$project$Crafting$scrollToText = function (scroll) {
+	switch (scroll.$) {
+		case 'Modification':
+			return 'Modification';
+		case 'Augmentation':
+			return 'Augmentation';
+		case 'Alteration':
+			return 'Alteration';
+		default:
+			return 'Distillation';
+	}
+};
+var $author$project$Crafting$viewScrolls = F2(
+	function (scrolls, selected) {
+		var highlight = function (scrl) {
+			return _Utils_eq(
+				$elm$core$Maybe$Just(scrl),
+				selected) ? A2($elm$html$Html$Attributes$style, 'border', '3px solid black') : A2($elm$html$Html$Attributes$style, 'border', 'none');
+		};
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					A2($elm$html$Html$Attributes$style, 'background-color', 'grey'),
+					A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+					A2($elm$html$Html$Attributes$style, 'flex-direction', 'column'),
+					A2($elm$html$Html$Attributes$style, 'justify-content', 'space-between')
+				]),
+			A2(
+				$elm$core$List$map,
+				function (_v0) {
+					var scrl = _v0.a;
+					var quant = _v0.b;
+					return A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								highlight(scrl),
+								$elm$html$Html$Events$onClick(
+								$author$project$Crafting$ScrollSelected(scrl))
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								$author$project$Crafting$scrollToText(scrl) + (': ' + $elm$core$String$fromInt(quant)))
+							]));
+				},
+				scrolls));
+	});
+var $author$project$Crafting$viewTileBench = F2(
+	function (tile, essence) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					A2($elm$html$Html$Attributes$style, 'background-color', 'grey'),
+					A2($elm$html$Html$Attributes$style, 'width', '5vw'),
+					A2($elm$html$Html$Attributes$style, 'height', '8vw')
+				]),
+			_List_Nil);
+	});
+var $author$project$Crafting$viewCraftingTable = function (state) {
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick($author$project$Crafting$Craft)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Craft')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+						A2($elm$html$Html$Attributes$style, 'gap', '5px')
+					]),
+				_List_fromArray(
+					[
+						A2($author$project$Crafting$viewTileBench, state.tile, state.selectedEssence),
+						A2($author$project$Crafting$viewScrolls, state.scrolls, state.selectedScroll),
+						A2($author$project$Crafting$viewOrbs, state.orbs, state.selectedOrbs)
+					]))
+			]));
+};
 var $author$project$Main$viewLeftPane = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -8332,7 +10114,8 @@ var $author$project$Main$viewLeftPane = function (model) {
 			[
 				A2($elm$html$Html$Attributes$style, 'border', '0.8em double black'),
 				A2($elm$html$Html$Attributes$style, 'background-color', 'white'),
-				A2($elm$html$Html$Attributes$style, 'height', '95vh')
+				A2($elm$html$Html$Attributes$style, 'height', '95vh'),
+				A2($elm$html$Html$Attributes$style, 'width', '45vw')
 			]),
 		_List_fromArray(
 			[
@@ -8342,6 +10125,7 @@ var $author$project$Main$viewLeftPane = function (model) {
 					[
 						A2($elm$html$Html$Attributes$style, 'height', '6.5em'),
 						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+						A2($elm$html$Html$Attributes$style, 'flex-wrap', 'wrap'),
 						A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
 						A2($elm$html$Html$Attributes$style, 'gap', '5px')
 					]),
@@ -8358,7 +10142,8 @@ var $author$project$Main$viewLeftPane = function (model) {
 				_List_fromArray(
 					[
 						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
-						A2($elm$html$Html$Attributes$style, 'gap', '5px')
+						A2($elm$html$Html$Attributes$style, 'gap', '5px'),
+						A2($elm$html$Html$Attributes$style, 'flex-wrap', 'wrap')
 					]),
 				A2(
 					$elm$core$List$map,
@@ -8367,7 +10152,11 @@ var $author$project$Main$viewLeftPane = function (model) {
 						$elm$html$Html$map($author$project$Main$DragMsg),
 						$author$project$Board$drawTileIcon(
 							_Utils_eq(model.dragedItem, $author$project$Board$None))),
-					$elm$core$Dict$toList(model.tiles)))
+					$elm$core$Dict$toList(model.tiles))),
+				A2(
+				$elm$html$Html$map,
+				$author$project$Main$CraftingMsg,
+				$author$project$Crafting$viewCraftingTable(model.craftingTable))
 			]));
 };
 var $author$project$Board$DragFromBoardStart = function (a) {

@@ -96,6 +96,7 @@ type alias Piece =
     , positions : List Index
     , req : Score
     , score : Score
+    , level : Int
     }
 
 type alias BorderTransform =
@@ -111,6 +112,35 @@ type Shape
     = Twoi (List Index)
     | Threel (List Index)
     | Threei (List Index)
+    | Fouro (List Index)
+    | Fourt (List Index)
+    | Fours (List Index)
+    | Fourz (List Index)
+    | Fourl (List Index)
+
+twoiStartIndex : List Index
+twoiStartIndex = [(0,0), (0,1)]
+
+threelStartIndex : List Index
+threelStartIndex = [(0,0), (0,-1), (1,0)]
+
+threeiStartIndex : List Index
+threeiStartIndex = [(0,0), (0,1), (0,-1)]
+
+fouroStartIndex : List Index
+fouroStartIndex = [(0,0), (1,0), (0, 1), (1,1)]
+
+fourtStartIndex : List Index
+fourtStartIndex = [(0,0), (-1,0), (1,0), (0,1)]
+
+foursStartIndex : List Index
+foursStartIndex = [(0,0), (1,0), (0,1), (-1, 1)]
+
+fourzStartIndex : List Index
+fourzStartIndex = [(0,0), (-1,0), (0,1), (1,1)]
+
+fourlStartIndex : List Index
+fourlStartIndex = [(0,0), (0,-1), (0,1), (1,1)]
 
 type alias PieceDict = Dict Int Piece
 
@@ -163,6 +193,11 @@ shapeMap f shape =
         Twoi indexes -> Twoi <| f indexes
         Threel indexes -> Threel <| f indexes
         Threei indexes -> Threei <| f indexes
+        Fouro indexes -> Fouro <| f indexes
+        Fourt indexes -> Fourt <| f indexes
+        Fours indexes -> Fours <| f indexes
+        Fourz indexes -> Fourz <| f indexes
+        Fourl indexes -> Fourl <| f indexes
 
 rotatePieceRight : Piece -> Piece
 rotatePieceRight piece =
@@ -196,6 +231,11 @@ shapeToIndexes shape =
         Twoi indexes -> indexes
         Threel indexes -> indexes
         Threei indexes -> indexes
+        Fouro indexes -> indexes
+        Fourt indexes -> indexes
+        Fours indexes -> indexes
+        Fourz indexes -> indexes
+        Fourl indexes -> indexes
 
 drawPieceTooltip : Piece -> Html msg
 drawPieceTooltip piece =
@@ -387,6 +427,16 @@ drawPieceBorder piece =
                     drawPath cord " v 52 h 104 v -52 h -52 v -52 h -52 v 52"
                 Threei _ ->
                     drawPath cord " v 104 h 52 v -156 h -52 v 52"
+                Fouro _ ->
+                    drawPath cord " h 104 v 104 h -104 v -105"
+                Fourt _ ->
+                    drawPath cord " h 104 v 52 h -52 v 52 h -52 v -52 h -52 v -52 h 52"
+                Fours _ ->
+                    drawPath cord " h 104 v 52 h -52 v 52 h -104 v -52 h 52 v -53"
+                Fourz _ ->
+                    drawPath cord " h 52 v 52 h 52 v 52 h -104 v -52 h -52 v -52 h 52"
+                Fourl _ ->
+                    drawPath cord " v 104 h 104 v -52 h -52 v -104 h -52 v 52"
     in case piece.drawPosition of
            Just pos -> draw pos
            Nothing -> draw (0,0)
@@ -640,9 +690,10 @@ type alias Tile =
     , baseValue : Int
     , currentValue : Int
     , prodBonus : Float
-    , addBonus : Int
+    , addBonus : Float
     , properties : List Property
     , drawPosition : Maybe Index
+    , level : Int
     }
 
 type alias Property =
@@ -650,9 +701,39 @@ type alias Property =
     , reqColor : Color
     , reqValue : Int
     , prodBonus : Float
-    , addBonus : Int
+    , addBonus : Float
     , isMet : Bool
     }
+
+prop2OpEdge : List Index
+prop2OpEdge = [(0,-1), (0,1)]
+
+prop2OpCorn : List Index
+prop2OpCorn = [(1,-1), (-1,1)]
+
+prop2Corn1 : List Index
+prop2Corn1 = [(1,0), (1,-1)]
+
+prop2Corn2 : List Index
+prop2Corn2 = [(0,-1), (1,-1)]
+
+prop3Corn : List Index
+prop3Corn = [(0,-1), (1,-1), (1,0)]
+
+prop3Edge : List Index
+prop3Edge = [(1,-1), (1,0), (1,1)]
+
+prop4Edge : List Index
+prop4Edge = [(-1,0), (0,-1), (1,0), (0,1)]
+
+prop4Corn : List Index
+prop4Corn = [(-1,-1), (1,-1), (1,1), (-1,1)]
+
+prop4Double1 : List Index
+prop4Double1 = [(-1,0), (-1,1), (1,0), (1,-1)]
+
+prop4Double2 : List Index
+prop4Double2 = [(-1,0), (-1,-1), (1,0), (1,1)]
 
 rotatePropertyRight : Property -> Property
 rotatePropertyRight property =
@@ -737,7 +818,7 @@ updateTile tile index board =
               , addBonus = addBonus
               , prodBonus = prodBonus
               , currentValue = 
-                  floor (toFloat tile.baseValue * (prodBonus + 1)) + addBonus
+                  floor (toFloat tile.baseValue * (prodBonus + 1) + addBonus)
        }
    
 checkAroundTile : Index -> Board -> List (Field, Index)
@@ -875,7 +956,7 @@ drawTileTooltip tile =
                          else [ drawReqMet pr.isMet ] ) ++
                        [ text <| String.fromInt pr.reqValue ++ " "
                        , drawRegion pr.region pr.reqColor
-                       , text <| " " ++ String.fromFloat pr.prodBonus ++ "x + " ++ String.fromInt pr.addBonus
+                       , text <| " " ++ String.fromFloat pr.prodBonus ++ "x + " ++ String.fromFloat pr.addBonus
                        ]
               )
               tile.properties

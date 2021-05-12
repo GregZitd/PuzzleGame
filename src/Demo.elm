@@ -18,6 +18,7 @@ probaPiece3 =
     , positions = []
     , req = [ (Purple, 0) , (Green, 2) , (Yellow, 2) , (Orange, 0) ]
     , score = emptyScore
+    , level = 1
     }
 
 probaPiece2 : Piece
@@ -28,6 +29,7 @@ probaPiece2 =
     , positions = []
     , req = [ (Purple, 2) , (Green, 2) , (Yellow, 0) , (Orange, 0) ]
     , score = emptyScore
+    , level = 1
     }
 
 probaPiece : Piece
@@ -38,6 +40,7 @@ probaPiece =
     , positions = []
     , req = [ (Purple, 3) , (Green, 0) , (Yellow, 0) , (Orange, 0) ]
     , score = emptyScore
+    , level = 1
     }
 
 initBoard : Board
@@ -71,6 +74,7 @@ probaTile =
     , addBonus = 0
     , properties = []
     , drawPosition = Nothing
+    , level = 1
     }
 
 probaTile2 : Tile
@@ -82,6 +86,7 @@ probaTile2 =
     , addBonus = 0
     , properties = [probaProperty2, probaProperty]
     , drawPosition = Nothing
+    , level = 1
     }
     
 probaProperty : Property
@@ -113,6 +118,7 @@ probaTile3 =
     , addBonus = 0
     , properties = [probaProperty3]
     , drawPosition = Nothing
+    , level = 1
     }
 
 probaProperty3 : Property
@@ -134,6 +140,7 @@ probaTile4 =
     , addBonus = 0
     , properties = [probaProperty4]
     , drawPosition = Nothing
+    , level = 1
     }
 
 probaProperty4 : Property
@@ -155,6 +162,7 @@ probaTile5 =
     , addBonus = 0
     , properties = [probaProperty5]
     , drawPosition = Nothing
+    , level = 1
     }
 
 probaProperty5 : Property
@@ -176,6 +184,7 @@ probaTile6 =
     , addBonus = 0
     , properties = [probaProperty6]
     , drawPosition = Nothing
+    , level = 1
     }
 
 probaProperty6 : Property

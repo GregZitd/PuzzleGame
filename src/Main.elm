@@ -6,15 +6,17 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events as Events
 import Array exposing (Array)
-import Random
 import Dict exposing (Dict)
 import Svg
 import Svg.Attributes as Svga
 import Svg.Events as Svge
 import Json.Decode as Decode
+import Random
 
 import Board
 import Demo
+import ProcGen
+import Crafting
 
 -- MAIN
 
@@ -40,6 +42,7 @@ type alias Model =
     , hoveredTile : Maybe Board.Tile
     , hoveredPiece : Maybe Board.Piece
     , showTileTooltip : Bool
+    , craftingTable : Crafting.TableState
     }
 
 init : () -> (Model, Cmd Msg)
@@ -52,8 +55,13 @@ init _ =
    , hoveredTile = Nothing
    , hoveredPiece = Nothing
    , showTileTooltip = False
+   , craftingTable = Crafting.init
    }
-  , Cmd.none )
+  , Cmd.batch [ Random.generate NewBoard (ProcGen.generateBoard 2)
+              , Random.generate NewPieceDict <| ProcGen.generatePieceDict 2
+              , Random.generate NewTileList <| Random.list 12 (ProcGen.generateTile 2)
+              ])
+ 
 
 -- UPDATE
 
@@ -63,6 +71,10 @@ type Msg
     | KeyboardMsg KeyDownInput
     | KeyboardUpMsg KeyUpInput
     | MousePosition Int Int
+    | NewBoard Board.Board
+    | NewPieceDict Board.PieceDict
+    | NewTileList (List Board.Tile)
+    | CraftingMsg Crafting.Msg
 
 updateDrag : Board.Drag -> Model -> Model
 updateDrag drag model =
@@ -187,6 +199,18 @@ update msg model =
       MousePosition x y ->
          ( { model | mousePos = (x,y) }, Cmd.none )
 
+      NewBoard board ->
+          ( { model | board = board }, Cmd.none )
+
+      NewPieceDict pieceDict ->
+          ( { model | pieces = pieceDict }, Cmd.none)
+
+      NewTileList tiles ->
+          ( { model | tiles = Dict.fromList (List.indexedMap Tuple.pair tiles) }, Cmd.none )
+
+      CraftingMsg craftingMsg -> 
+          ( { model | craftingTable = Crafting.update craftingMsg model.craftingTable }, Cmd.none )
+
 dragEnd : Bool -> Model -> (Model, Cmd Msg)
 dragEnd success model =
     let removedFromHand =
@@ -200,11 +224,18 @@ dragEnd success model =
             else case model.dragedItem of
                      Board.DragPieceFromBoard piece ->
                          { model | pieces = Tuple.second <|
-                               Board.addToPieceDict piece model.pieces }
+                               Board.addToPieceDict
+                                   { piece | drawPosition = Nothing, positions = [] }
+                                   model.pieces
+                         }
                      Board.DragTileFromBoard tile ->
                          { model | tiles = Board.addToTileDict tile model.tiles }
                      Board.DragPieceFromHand piece pieceId ->
-                         { model | pieces = Dict.update pieceId (\_ -> Just piece) model.pieces }
+                         { model | pieces =
+                               Dict.update pieceId
+                                   (\_ -> Just { piece | drawPosition = Nothing, positions = [] })
+                                   model.pieces
+                         }
                      Board.DragTileFromHand tile tileId ->
                          { model | tiles = Dict.update tileId (\_ -> Just tile) model.tiles }
                      _ -> model
@@ -322,19 +353,22 @@ viewLeftPane model =
         [ style "border" "0.8em double black"
         , style "background-color" "white"
         , style "height" "95vh"
+        , style "width" "45vw"
         ] 
         [ div [ style "height" "6.5em"
               , style "display" "flex"
+              , style "flex-wrap" "wrap"
               , style "align-items" "center"
               , style "gap" "5px"
               ]
             <| List.map
                 (Html.map DragMsg << Board.drawPieceIcon (model.dragedItem == Board.None))
                 (Dict.toList model.pieces)
-        , div [style "display" "flex", style "gap" "5px"]
+        , div [style "display" "flex", style "gap" "5px", style "flex-wrap" "wrap"]
             <| List.map
                 (Html.map DragMsg << Board.drawTileIcon (model.dragedItem == Board.None))
                 (Dict.toList model.tiles)
+        , Html.map CraftingMsg <| Crafting.viewCraftingTable model.craftingTable
         ]
 
 viewRightPane : Model -> Html Msg
