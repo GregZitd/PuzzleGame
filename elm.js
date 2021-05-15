@@ -5230,13 +5230,13 @@ var $elm$browser$Browser$element = _Browser_element;
 var $author$project$Main$NewBoard = function (a) {
 	return {$: 'NewBoard', a: a};
 };
-var $author$project$Main$NewPieceDict = function (a) {
-	return {$: 'NewPieceDict', a: a};
+var $author$project$Main$NewPieceList = function (a) {
+	return {$: 'NewPieceList', a: a};
 };
 var $author$project$Main$NewTileList = function (a) {
 	return {$: 'NewTileList', a: a};
 };
-var $author$project$Board$None = {$: 'None'};
+var $author$project$Items$None = {$: 'None'};
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$random$Random$Generate = function (a) {
 	return {$: 'Generate', a: a};
@@ -5790,16 +5790,16 @@ var $elm$random$Random$constant = function (value) {
 };
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
-var $author$project$Board$Green = {$: 'Green'};
-var $author$project$Board$Orange = {$: 'Orange'};
-var $author$project$Board$Purple = {$: 'Purple'};
-var $author$project$Board$Yellow = {$: 'Yellow'};
-var $author$project$Board$emptyScore = _List_fromArray(
+var $author$project$Items$Green = {$: 'Green'};
+var $author$project$Items$Orange = {$: 'Orange'};
+var $author$project$Items$Purple = {$: 'Purple'};
+var $author$project$Items$Yellow = {$: 'Yellow'};
+var $author$project$Items$emptyScore = _List_fromArray(
 	[
-		_Utils_Tuple2($author$project$Board$Purple, 0),
-		_Utils_Tuple2($author$project$Board$Green, 0),
-		_Utils_Tuple2($author$project$Board$Yellow, 0),
-		_Utils_Tuple2($author$project$Board$Orange, 0)
+		_Utils_Tuple2($author$project$Items$Purple, 0),
+		_Utils_Tuple2($author$project$Items$Green, 0),
+		_Utils_Tuple2($author$project$Items$Yellow, 0),
+		_Utils_Tuple2($author$project$Items$Orange, 0)
 	]);
 var $elm$core$Dict$Black = {$: 'Black'};
 var $elm$core$Dict$RBNode_elm_builtin = F5(
@@ -5927,6 +5927,48 @@ var $elm$core$Basics$composeL = F3(
 		return g(
 			f(x));
 	});
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var $elm$core$List$member = F2(
+	function (x, xs) {
+		return A2(
+			$elm$core$List$any,
+			function (a) {
+				return _Utils_eq(a, x);
+			},
+			xs);
+	});
+var $elm$core$Basics$not = _Basics_not;
 var $elm$random$Random$addOne = function (value) {
 	return _Utils_Tuple2(1, value);
 };
@@ -6000,11 +6042,41 @@ var $elm$random$Random$uniform = F2(
 			$elm$random$Random$addOne(value),
 			A2($elm$core$List$map, $elm$random$Random$addOne, valueList));
 	});
-var $author$project$ProcGen$generateColor = A2(
-	$elm$random$Random$uniform,
-	$author$project$Board$Purple,
-	_List_fromArray(
-		[$author$project$Board$Green, $author$project$Board$Yellow, $author$project$Board$Orange]));
+var $author$project$ProcGen$generateColor = function (blocked) {
+	var go = function (colors) {
+		go:
+		while (true) {
+			if (colors.b) {
+				var col = colors.a;
+				var rest = colors.b;
+				if (A2($elm$core$List$member, col, blocked)) {
+					var $temp$colors = rest;
+					colors = $temp$colors;
+					continue go;
+				} else {
+					return A2(
+						$elm$random$Random$uniform,
+						col,
+						A2(
+							$elm$core$List$filter,
+							function (c) {
+								return !A2(
+									$elm$core$List$member,
+									c,
+									A2($elm$core$List$cons, col, blocked));
+							},
+							_List_fromArray(
+								[$author$project$Items$Purple, $author$project$Items$Green, $author$project$Items$Yellow, $author$project$Items$Orange])));
+				}
+			} else {
+				return $elm$random$Random$constant($author$project$Items$Purple);
+			}
+		}
+	};
+	return go(
+		_List_fromArray(
+			[$author$project$Items$Purple, $author$project$Items$Green, $author$project$Items$Yellow, $author$project$Items$Orange]));
+};
 var $elm_community$list_extra$List$Extra$remove = F2(
 	function (x, xs) {
 		if (!xs.b) {
@@ -6019,14 +6091,14 @@ var $elm_community$list_extra$List$Extra$remove = F2(
 		}
 	});
 var $author$project$ProcGen$generateSecondColor = function (firstColor) {
-	return _Utils_eq(firstColor, $author$project$Board$Purple) ? A2(
+	return _Utils_eq(firstColor, $author$project$Items$Purple) ? A2(
 		$elm$random$Random$weighted,
-		_Utils_Tuple2(0.3, $author$project$Board$Purple),
+		_Utils_Tuple2(0.3, $author$project$Items$Purple),
 		A2(
 			$elm$core$List$map,
 			$elm$core$Tuple$pair(3 / 12),
 			_List_fromArray(
-				[$author$project$Board$Green, $author$project$Board$Yellow, $author$project$Board$Orange]))) : A2(
+				[$author$project$Items$Green, $author$project$Items$Yellow, $author$project$Items$Orange]))) : A2(
 		$elm$random$Random$weighted,
 		_Utils_Tuple2(0.3, firstColor),
 		A2(
@@ -6036,7 +6108,7 @@ var $author$project$ProcGen$generateSecondColor = function (firstColor) {
 				$elm_community$list_extra$List$Extra$remove,
 				firstColor,
 				_List_fromArray(
-					[$author$project$Board$Purple, $author$project$Board$Green, $author$project$Board$Yellow, $author$project$Board$Orange]))));
+					[$author$project$Items$Purple, $author$project$Items$Green, $author$project$Items$Yellow, $author$project$Items$Orange]))));
 };
 var $elm$core$Basics$always = F2(
 	function (a, _v0) {
@@ -6070,9 +6142,9 @@ var $author$project$ProcGen$generateSingleColorReq = function (sum) {
 					$elm$core$Basics$eq(color),
 					$elm$core$Tuple$first),
 				_Utils_Tuple2(color, sum),
-				$author$project$Board$emptyScore);
+				$author$project$Items$emptyScore);
 		},
-		$author$project$ProcGen$generateColor);
+		$author$project$ProcGen$generateColor(_List_Nil));
 };
 var $elm$core$Tuple$mapSecond = F2(
 	function (func, _v0) {
@@ -6121,12 +6193,12 @@ var $author$project$ProcGen$generateReq = function (sum) {
 								$elm$core$Basics$eq(sndCol),
 								$elm$core$Tuple$first),
 							_Utils_Tuple2(sndCol, sndVal),
-							$author$project$Board$emptyScore));
+							$author$project$Items$emptyScore));
 				} else {
-					return $author$project$Board$emptyScore;
+					return $author$project$Items$emptyScore;
 				}
 			});
-		var fstColor = $author$project$ProcGen$generateColor;
+		var fstColor = $author$project$ProcGen$generateColor(_List_Nil);
 		var sndColor = A2($elm$random$Random$andThen, $author$project$ProcGen$generateSecondColor, fstColor);
 		return A4($elm$random$Random$map3, toScore, values, fstColor, sndColor);
 	}
@@ -6168,7 +6240,7 @@ var $author$project$ProcGen$generateRowReqs = function (level) {
 					A2(
 						$elm$core$List$map,
 						function (x) {
-							return _Utils_Tuple2(x, $author$project$Board$emptyScore);
+							return _Utils_Tuple2(x, $author$project$Items$emptyScore);
 						},
 						scoreList)));
 		});
@@ -6223,7 +6295,7 @@ var $author$project$ProcGen$generateBoard = function (level) {
 					{
 						colReqs: $elm$core$Dict$empty,
 						highlight: _List_Nil,
-						pieces: $elm$core$Dict$empty,
+						pieces: _List_Nil,
 						rowReqs: $elm$core$Dict$empty,
 						tiles: A2(
 							$elm$core$Array$repeat,
@@ -6234,7 +6306,7 @@ var $author$project$ProcGen$generateBoard = function (level) {
 								$author$project$Board$NonTile(false)))
 					}))));
 };
-var $author$project$Board$Twoi = function (a) {
+var $author$project$Items$Twoi = function (a) {
 	return {$: 'Twoi', a: a};
 };
 var $author$project$ProcGen$pRound = function (_float) {
@@ -6251,7 +6323,7 @@ var $author$project$ProcGen$pRound = function (_float) {
 					_Utils_Tuple2(1 - prob, 0)
 				])));
 };
-var $author$project$Board$twoiStartIndex = _List_fromArray(
+var $author$project$Items$twoiStartIndex = _List_fromArray(
 	[
 		_Utils_Tuple2(0, 0),
 		_Utils_Tuple2(0, 1)
@@ -6267,28 +6339,28 @@ var $author$project$ProcGen$generate2Piece = function (level) {
 					translate: _Utils_Tuple2(0, 0)
 				},
 				drawPosition: $elm$core$Maybe$Nothing,
-				level: level,
+				id: 0,
 				positions: _List_Nil,
 				req: req,
-				score: $author$project$Board$emptyScore,
-				shape: $author$project$Board$Twoi($author$project$Board$twoiStartIndex)
+				score: $author$project$Items$emptyScore,
+				shape: $author$project$Items$Twoi($author$project$Items$twoiStartIndex)
 			};
 		},
 		A2($elm$random$Random$andThen, $author$project$ProcGen$generateSingleColorReq, reqNum));
 };
-var $author$project$Board$Threei = function (a) {
+var $author$project$Items$Threei = function (a) {
 	return {$: 'Threei', a: a};
 };
-var $author$project$Board$Threel = function (a) {
+var $author$project$Items$Threel = function (a) {
 	return {$: 'Threel', a: a};
 };
-var $author$project$Board$threeiStartIndex = _List_fromArray(
+var $author$project$Items$threeiStartIndex = _List_fromArray(
 	[
 		_Utils_Tuple2(0, 0),
 		_Utils_Tuple2(0, 1),
 		_Utils_Tuple2(0, -1)
 	]);
-var $author$project$Board$threelStartIndex = _List_fromArray(
+var $author$project$Items$threelStartIndex = _List_fromArray(
 	[
 		_Utils_Tuple2(0, 0),
 		_Utils_Tuple2(0, -1),
@@ -6306,66 +6378,66 @@ var $author$project$ProcGen$generate3Piece = function (level) {
 						translate: _Utils_Tuple2(0, 0)
 					},
 					drawPosition: $elm$core$Maybe$Nothing,
-					level: level,
+					id: 0,
 					positions: _List_Nil,
 					req: req,
-					score: $author$project$Board$emptyScore,
+					score: $author$project$Items$emptyScore,
 					shape: shape
 				};
 			}),
 		A2(
 			$elm$random$Random$uniform,
-			$author$project$Board$Threei($author$project$Board$threeiStartIndex),
+			$author$project$Items$Threei($author$project$Items$threeiStartIndex),
 			_List_fromArray(
 				[
-					$author$project$Board$Threel($author$project$Board$threelStartIndex)
+					$author$project$Items$Threel($author$project$Items$threelStartIndex)
 				])),
 		A2($elm$random$Random$andThen, $author$project$ProcGen$generateReq, reqNum));
 };
-var $author$project$Board$Fourl = function (a) {
+var $author$project$Items$Fourl = function (a) {
 	return {$: 'Fourl', a: a};
 };
-var $author$project$Board$Fouro = function (a) {
+var $author$project$Items$Fouro = function (a) {
 	return {$: 'Fouro', a: a};
 };
-var $author$project$Board$Fours = function (a) {
+var $author$project$Items$Fours = function (a) {
 	return {$: 'Fours', a: a};
 };
-var $author$project$Board$Fourt = function (a) {
+var $author$project$Items$Fourt = function (a) {
 	return {$: 'Fourt', a: a};
 };
-var $author$project$Board$Fourz = function (a) {
+var $author$project$Items$Fourz = function (a) {
 	return {$: 'Fourz', a: a};
 };
-var $author$project$Board$fourlStartIndex = _List_fromArray(
+var $author$project$Items$fourlStartIndex = _List_fromArray(
 	[
 		_Utils_Tuple2(0, 0),
 		_Utils_Tuple2(0, -1),
 		_Utils_Tuple2(0, 1),
 		_Utils_Tuple2(1, 1)
 	]);
-var $author$project$Board$fouroStartIndex = _List_fromArray(
+var $author$project$Items$fouroStartIndex = _List_fromArray(
 	[
 		_Utils_Tuple2(0, 0),
 		_Utils_Tuple2(1, 0),
 		_Utils_Tuple2(0, 1),
 		_Utils_Tuple2(1, 1)
 	]);
-var $author$project$Board$foursStartIndex = _List_fromArray(
+var $author$project$Items$foursStartIndex = _List_fromArray(
 	[
 		_Utils_Tuple2(0, 0),
 		_Utils_Tuple2(1, 0),
 		_Utils_Tuple2(0, 1),
 		_Utils_Tuple2(-1, 1)
 	]);
-var $author$project$Board$fourtStartIndex = _List_fromArray(
+var $author$project$Items$fourtStartIndex = _List_fromArray(
 	[
 		_Utils_Tuple2(0, 0),
 		_Utils_Tuple2(-1, 0),
 		_Utils_Tuple2(1, 0),
 		_Utils_Tuple2(0, 1)
 	]);
-var $author$project$Board$fourzStartIndex = _List_fromArray(
+var $author$project$Items$fourzStartIndex = _List_fromArray(
 	[
 		_Utils_Tuple2(0, 0),
 		_Utils_Tuple2(-1, 0),
@@ -6384,58 +6456,97 @@ var $author$project$ProcGen$generate4Piece = function (level) {
 						translate: _Utils_Tuple2(0, 0)
 					},
 					drawPosition: $elm$core$Maybe$Nothing,
-					level: level,
+					id: 0,
 					positions: _List_Nil,
 					req: req,
-					score: $author$project$Board$emptyScore,
+					score: $author$project$Items$emptyScore,
 					shape: shape
 				};
 			}),
 		A2(
 			$elm$random$Random$uniform,
-			$author$project$Board$Fouro($author$project$Board$fouroStartIndex),
+			$author$project$Items$Fouro($author$project$Items$fouroStartIndex),
 			_List_fromArray(
 				[
-					$author$project$Board$Fourt($author$project$Board$fourtStartIndex),
-					$author$project$Board$Fours($author$project$Board$foursStartIndex),
-					$author$project$Board$Fourz($author$project$Board$fourzStartIndex),
-					$author$project$Board$Fourl($author$project$Board$fourlStartIndex)
+					$author$project$Items$Fourt($author$project$Items$fourtStartIndex),
+					$author$project$Items$Fours($author$project$Items$foursStartIndex),
+					$author$project$Items$Fourz($author$project$Items$fourzStartIndex),
+					$author$project$Items$Fourl($author$project$Items$fourlStartIndex)
 				])),
 		A2($elm$random$Random$andThen, $author$project$ProcGen$generateReq, reqNum));
 };
-var $author$project$ProcGen$generatePieceDict = function (level) {
-	var nextPiece = F2(
-		function (randPieceList, size) {
-			var next = function () {
-				switch (size) {
-					case 2:
-						return $author$project$ProcGen$generate2Piece(level);
-					case 3:
-						return $author$project$ProcGen$generate3Piece(level);
-					default:
-						return $author$project$ProcGen$generate4Piece(level);
-				}
-			}();
-			return A3($elm$random$Random$map2, $elm$core$List$cons, next, randPieceList);
-		});
+var $author$project$ProcGen$generatePiece = F2(
+	function (size, state) {
+		var next = function () {
+			switch (size) {
+				case 2:
+					return $author$project$ProcGen$generate2Piece(state.level);
+				case 3:
+					return $author$project$ProcGen$generate3Piece(state.level);
+				default:
+					return $author$project$ProcGen$generate4Piece(state.level);
+			}
+		}();
+		return A2(
+			$elm$random$Random$map,
+			function (piece) {
+				return _Utils_Tuple2(
+					_Utils_update(
+						state,
+						{nextPieceId: state.nextPieceId + 1}),
+					_Utils_update(
+						piece,
+						{id: state.nextPieceId}));
+			},
+			next);
+	});
+var $author$project$ProcGen$generatePieceList = function (state) {
 	var go = F2(
-		function (sumLeft, pieceList) {
+		function (sumLeft, rStateList) {
+			var next = function (randInt) {
+				return A2(
+					$elm$random$Random$andThen,
+					function (_v1) {
+						var nextState = _v1.a;
+						var nextPiece = _v1.b;
+						return A2(
+							go,
+							sumLeft - randInt,
+							A2(
+								$elm$random$Random$map,
+								function (_v2) {
+									var ls = _v2.b;
+									return _Utils_Tuple2(
+										nextState,
+										A2($elm$core$List$cons, nextPiece, ls));
+								},
+								rStateList));
+					},
+					A2(
+						$elm$random$Random$andThen,
+						A2(
+							$elm$core$Basics$composeL,
+							$author$project$ProcGen$generatePiece(randInt),
+							$elm$core$Tuple$first),
+						rStateList));
+			};
 			switch (sumLeft) {
 				case 0:
-					return pieceList;
+					return rStateList;
 				case 2:
-					return A2(nextPiece, pieceList, 2);
+					return A2(
+						$elm$random$Random$andThen,
+						next,
+						$elm$random$Random$constant(2));
 				case 3:
-					return A2(nextPiece, pieceList, 3);
+					return A2(
+						$elm$random$Random$andThen,
+						next,
+						$elm$random$Random$constant(3));
 				case 4:
 					return A2(
 						$elm$random$Random$andThen,
-						function (randInt) {
-							return A2(
-								go,
-								sumLeft - randInt,
-								A2(nextPiece, pieceList, randInt));
-						},
+						next,
 						A2(
 							$elm$random$Random$weighted,
 							_Utils_Tuple2(2, 2),
@@ -6446,12 +6557,7 @@ var $author$project$ProcGen$generatePieceDict = function (level) {
 				case 5:
 					return A2(
 						$elm$random$Random$andThen,
-						function (randInt) {
-							return A2(
-								go,
-								sumLeft - randInt,
-								A2(nextPiece, pieceList, randInt));
-						},
+						next,
 						A2(
 							$elm$random$Random$weighted,
 							_Utils_Tuple2(2, 2),
@@ -6462,12 +6568,7 @@ var $author$project$ProcGen$generatePieceDict = function (level) {
 				default:
 					return A2(
 						$elm$random$Random$andThen,
-						function (randInt) {
-							return A2(
-								go,
-								sumLeft - randInt,
-								A2(nextPiece, pieceList, randInt));
-						},
+						next,
 						A2(
 							$elm$random$Random$weighted,
 							_Utils_Tuple2(2, 2),
@@ -6478,36 +6579,17 @@ var $author$project$ProcGen$generatePieceDict = function (level) {
 								])));
 			}
 		});
-	var fieldSum = 10 + (level * 2);
+	var fieldSum = 10 + (state.level * 2);
 	return A2(
-		$elm$random$Random$map,
-		A2(
-			$elm$core$Basics$composeL,
-			$elm$core$Dict$fromList,
-			$elm$core$List$indexedMap($elm$core$Tuple$pair)),
-		A2(
-			go,
-			fieldSum,
-			$elm$random$Random$constant(_List_Nil)));
+		go,
+		fieldSum,
+		$elm$random$Random$constant(
+			_Utils_Tuple2(state, _List_Nil)));
 };
-var $elm_community$random_extra$Random$Extra$andThen2 = F3(
-	function (constructor, generatorA, generatorB) {
-		return A2(
-			$elm$random$Random$andThen,
-			function (a) {
-				return A2(
-					$elm$random$Random$andThen,
-					function (b) {
-						return A2(constructor, a, b);
-					},
-					generatorB);
-			},
-			generatorA);
-	});
 var $author$project$ProcGen$defaultTile = $elm$random$Random$constant(
-	{addBonus: 0, baseValue: 1, color: $author$project$Board$Green, currentValue: 1, drawPosition: $elm$core$Maybe$Nothing, level: 1, prodBonus: 0, properties: _List_Nil});
-var $author$project$ProcGen$generateBase = F2(
-	function (level, tile) {
+	{addBonus: 0, baseValue: 1, color: $author$project$Items$Green, currentValue: 1, drawPosition: $elm$core$Maybe$Nothing, id: 0, prodBonus: 0, properties: _List_Nil});
+var $author$project$ProcGen$generateBase = F3(
+	function (level, blockedColors, tile) {
 		var updateTileColor = F2(
 			function (col, uTile) {
 				return _Utils_update(
@@ -6535,7 +6617,7 @@ var $author$project$ProcGen$generateBase = F2(
 		return A3(
 			$elm$random$Random$map2,
 			updateTileColor,
-			$author$project$ProcGen$generateColor,
+			$author$project$ProcGen$generateColor(blockedColors),
 			A4(
 				$elm$random$Random$map3,
 				updateTileBaseVal,
@@ -6543,25 +6625,39 @@ var $author$project$ProcGen$generateBase = F2(
 				is2Tile,
 				$elm$random$Random$constant(tile)));
 	});
+var $elm_community$random_extra$Random$Extra$andThen2 = F3(
+	function (constructor, generatorA, generatorB) {
+		return A2(
+			$elm$random$Random$andThen,
+			function (a) {
+				return A2(
+					$elm$random$Random$andThen,
+					function (b) {
+						return A2(constructor, a, b);
+					},
+					generatorB);
+			},
+			generatorA);
+	});
 var $author$project$ProcGen$avgRowReq = function (level) {
 	return ((level * 2) + 2) / 3;
 };
-var $author$project$Board$prop2Corn1 = _List_fromArray(
+var $author$project$Items$prop2Corn1 = _List_fromArray(
 	[
 		_Utils_Tuple2(1, 0),
 		_Utils_Tuple2(1, -1)
 	]);
-var $author$project$Board$prop2Corn2 = _List_fromArray(
+var $author$project$Items$prop2Corn2 = _List_fromArray(
 	[
 		_Utils_Tuple2(0, -1),
 		_Utils_Tuple2(1, -1)
 	]);
-var $author$project$Board$prop2OpCorn = _List_fromArray(
+var $author$project$Items$prop2OpCorn = _List_fromArray(
 	[
 		_Utils_Tuple2(1, -1),
 		_Utils_Tuple2(-1, 1)
 	]);
-var $author$project$Board$prop2OpEdge = _List_fromArray(
+var $author$project$Items$prop2OpEdge = _List_fromArray(
 	[
 		_Utils_Tuple2(0, -1),
 		_Utils_Tuple2(0, 1)
@@ -6578,9 +6674,9 @@ var $author$project$ProcGen$generate2Region = F2(
 			$author$project$ProcGen$avgRowReq(level) / 2);
 		var region = A2(
 			$elm$random$Random$uniform,
-			$author$project$Board$prop2OpEdge,
+			$author$project$Items$prop2OpEdge,
 			_List_fromArray(
-				[$author$project$Board$prop2OpCorn, $author$project$Board$prop2Corn1, $author$project$Board$prop2Corn2]));
+				[$author$project$Items$prop2OpCorn, $author$project$Items$prop2Corn1, $author$project$Items$prop2Corn2]));
 		return A4(
 			$elm$random$Random$map3,
 			update,
@@ -6588,13 +6684,13 @@ var $author$project$ProcGen$generate2Region = F2(
 			region,
 			$elm$random$Random$constant(property));
 	});
-var $author$project$Board$prop3Corn = _List_fromArray(
+var $author$project$Items$prop3Corn = _List_fromArray(
 	[
 		_Utils_Tuple2(0, -1),
 		_Utils_Tuple2(1, -1),
 		_Utils_Tuple2(1, 0)
 	]);
-var $author$project$Board$prop3Edge = _List_fromArray(
+var $author$project$Items$prop3Edge = _List_fromArray(
 	[
 		_Utils_Tuple2(1, -1),
 		_Utils_Tuple2(1, 0),
@@ -6612,9 +6708,9 @@ var $author$project$ProcGen$generate3Region = F2(
 			(3 * $author$project$ProcGen$avgRowReq(level)) / 4);
 		var region = A2(
 			$elm$random$Random$uniform,
-			$author$project$Board$prop3Corn,
+			$author$project$Items$prop3Corn,
 			_List_fromArray(
-				[$author$project$Board$prop3Edge]));
+				[$author$project$Items$prop3Edge]));
 		return A4(
 			$elm$random$Random$map3,
 			update,
@@ -6622,28 +6718,28 @@ var $author$project$ProcGen$generate3Region = F2(
 			region,
 			$elm$random$Random$constant(property));
 	});
-var $author$project$Board$prop4Corn = _List_fromArray(
+var $author$project$Items$prop4Corn = _List_fromArray(
 	[
 		_Utils_Tuple2(-1, -1),
 		_Utils_Tuple2(1, -1),
 		_Utils_Tuple2(1, 1),
 		_Utils_Tuple2(-1, 1)
 	]);
-var $author$project$Board$prop4Double1 = _List_fromArray(
+var $author$project$Items$prop4Double1 = _List_fromArray(
 	[
 		_Utils_Tuple2(-1, 0),
 		_Utils_Tuple2(-1, 1),
 		_Utils_Tuple2(1, 0),
 		_Utils_Tuple2(1, -1)
 	]);
-var $author$project$Board$prop4Double2 = _List_fromArray(
+var $author$project$Items$prop4Double2 = _List_fromArray(
 	[
 		_Utils_Tuple2(-1, 0),
 		_Utils_Tuple2(-1, -1),
 		_Utils_Tuple2(1, 0),
 		_Utils_Tuple2(1, 1)
 	]);
-var $author$project$Board$prop4Edge = _List_fromArray(
+var $author$project$Items$prop4Edge = _List_fromArray(
 	[
 		_Utils_Tuple2(-1, 0),
 		_Utils_Tuple2(0, -1),
@@ -6662,9 +6758,9 @@ var $author$project$ProcGen$generate4Region = F2(
 			$author$project$ProcGen$avgRowReq(level));
 		var region = A2(
 			$elm$random$Random$uniform,
-			$author$project$Board$prop4Edge,
+			$author$project$Items$prop4Edge,
 			_List_fromArray(
-				[$author$project$Board$prop4Corn, $author$project$Board$prop4Double1, $author$project$Board$prop4Double2]));
+				[$author$project$Items$prop4Corn, $author$project$Items$prop4Double1, $author$project$Items$prop4Double2]));
 		return A4(
 			$elm$random$Random$map3,
 			update,
@@ -6750,57 +6846,58 @@ var $author$project$ProcGen$generateProdBonus = function (level) {
 			[1.5, 1, 0.5]));
 	return go(chances);
 };
-var $author$project$ProcGen$generateProperty = function (level) {
-	var bonus = A3(
-		$elm$random$Random$map2,
-		F2(
-			function (add, prod) {
-				return ((!add) && (!prod)) ? _Utils_Tuple2(1, 0) : _Utils_Tuple2(add, prod);
-			}),
-		$author$project$ProcGen$generateAddBonus(level),
-		$author$project$ProcGen$generateProdBonus(level));
-	var baseProp = A3(
-		$elm$random$Random$map2,
-		F2(
-			function (color, _v1) {
-				var add = _v1.a;
-				var prod = _v1.b;
-				return {addBonus: add, isMet: false, prodBonus: prod, region: _List_Nil, reqColor: color, reqValue: 0};
-			}),
-		$author$project$ProcGen$generateColor,
-		bonus);
-	var addRegion = F2(
-		function (prop, size) {
-			switch (size) {
-				case 2:
-					return A2(
-						$elm$random$Random$andThen,
-						$author$project$ProcGen$generate2Region(level),
-						prop);
-				case 3:
-					return A2(
-						$elm$random$Random$andThen,
-						$author$project$ProcGen$generate3Region(level),
-						prop);
-				default:
-					return A2(
-						$elm$random$Random$andThen,
-						$author$project$ProcGen$generate4Region(level),
-						prop);
-			}
-		});
-	return A2(
-		$elm$random$Random$andThen,
-		addRegion(baseProp),
-		A2(
-			$elm$random$Random$weighted,
-			_Utils_Tuple2(4, 2),
-			_List_fromArray(
-				[
-					_Utils_Tuple2(2, 3),
-					_Utils_Tuple2(4, 4)
-				])));
-};
+var $author$project$ProcGen$generateProperty = F2(
+	function (level, blockedColors) {
+		var bonus = A3(
+			$elm$random$Random$map2,
+			F2(
+				function (add, prod) {
+					return ((!add) && (!prod)) ? _Utils_Tuple2(1, 0) : _Utils_Tuple2(add, prod);
+				}),
+			$author$project$ProcGen$generateAddBonus(level),
+			$author$project$ProcGen$generateProdBonus(level));
+		var baseProp = A3(
+			$elm$random$Random$map2,
+			F2(
+				function (color, _v1) {
+					var add = _v1.a;
+					var prod = _v1.b;
+					return {addBonus: add, isMet: false, prodBonus: prod, region: _List_Nil, reqColor: color, reqValue: 0};
+				}),
+			$author$project$ProcGen$generateColor(blockedColors),
+			bonus);
+		var addRegion = F2(
+			function (prop, size) {
+				switch (size) {
+					case 2:
+						return A2(
+							$elm$random$Random$andThen,
+							$author$project$ProcGen$generate2Region(level),
+							prop);
+					case 3:
+						return A2(
+							$elm$random$Random$andThen,
+							$author$project$ProcGen$generate3Region(level),
+							prop);
+					default:
+						return A2(
+							$elm$random$Random$andThen,
+							$author$project$ProcGen$generate4Region(level),
+							prop);
+				}
+			});
+		return A2(
+			$elm$random$Random$andThen,
+			addRegion(baseProp),
+			A2(
+				$elm$random$Random$weighted,
+				_Utils_Tuple2(4, 2),
+				_List_fromArray(
+					[
+						_Utils_Tuple2(2, 3),
+						_Utils_Tuple2(4, 4)
+					])));
+	});
 var $elm$random$Random$listHelp = F4(
 	function (revList, n, gen, seed) {
 		listHelp:
@@ -6831,351 +6928,117 @@ var $elm$random$Random$list = F2(
 				return A4($elm$random$Random$listHelp, _List_Nil, n, gen, seed);
 			});
 	});
-var $author$project$ProcGen$generateTile = function (level) {
-	var genProperties = F2(
-		function (roll1, roll2) {
-			return (_Utils_cmp(roll1, level) < 1) ? ((_Utils_cmp(roll1 + roll2, level) < 1) ? A2(
-				$elm$random$Random$list,
-				2,
-				$author$project$ProcGen$generateProperty(level)) : A2(
-				$elm$random$Random$list,
-				1,
-				$author$project$ProcGen$generateProperty(level))) : $elm$random$Random$constant(_List_Nil);
-		});
+var $author$project$ProcGen$generateProperties = F2(
+	function (level, blockedColors) {
+		var gen = F2(
+			function (roll1, roll2) {
+				return (_Utils_cmp(roll1, level) < 1) ? ((_Utils_cmp(roll1 + roll2, level) < 1) ? A2(
+					$elm$random$Random$list,
+					2,
+					A2($author$project$ProcGen$generateProperty, level, blockedColors)) : A2(
+					$elm$random$Random$list,
+					1,
+					A2($author$project$ProcGen$generateProperty, level, blockedColors))) : $elm$random$Random$constant(_List_Nil);
+			});
+		return A3(
+			$elm_community$random_extra$Random$Extra$andThen2,
+			gen,
+			A2($elm$random$Random$int, 1, 8),
+			A2($elm$random$Random$int, 1, 8));
+	});
+var $author$project$ProcGen$generateTile = function (state) {
 	var baseTile = A2(
 		$elm$random$Random$andThen,
-		$author$project$ProcGen$generateBase(level),
+		A2($author$project$ProcGen$generateBase, state.level, _List_Nil),
 		$author$project$ProcGen$defaultTile);
 	return A3(
 		$elm$random$Random$map2,
 		F2(
 			function (tile, props) {
-				return _Utils_update(
-					tile,
-					{properties: props});
+				return _Utils_Tuple2(
+					_Utils_update(
+						state,
+						{nextTileId: state.nextTileId + 1}),
+					_Utils_update(
+						tile,
+						{id: state.nextTileId, properties: props}));
 			}),
 		baseTile,
-		A3(
-			$elm_community$random_extra$Random$Extra$andThen2,
-			genProperties,
-			A2($elm$random$Random$int, 1, 8),
-			A2($elm$random$Random$int, 1, 8)));
+		A2($author$project$ProcGen$generateProperties, state.level, _List_Nil));
 };
+var $author$project$ProcGen$generateTileList = F2(
+	function (length, state) {
+		var go = F2(
+			function (remLength, rStateList) {
+				return (!remLength) ? rStateList : A2(
+					go,
+					remLength - 1,
+					A3(
+						$elm$random$Random$map2,
+						F2(
+							function (_v0, _v1) {
+								var list = _v0.b;
+								var nextState = _v1.a;
+								var nextTile = _v1.b;
+								return _Utils_Tuple2(
+									nextState,
+									A2($elm$core$List$cons, nextTile, list));
+							}),
+						rStateList,
+						A2(
+							$elm$random$Random$andThen,
+							A2($elm$core$Basics$composeL, $author$project$ProcGen$generateTile, $elm$core$Tuple$first),
+							rStateList)));
+			});
+		return A2(
+			go,
+			length,
+			$elm$random$Random$constant(
+				_Utils_Tuple2(state, _List_Nil)));
+	});
 var $author$project$Crafting$Augmentation = {$: 'Augmentation'};
-var $author$project$Crafting$emptyOrbs = _List_fromArray(
+var $author$project$Crafting$demoOrbs = _List_fromArray(
 	[
-		_Utils_Tuple2($author$project$Board$Purple, 0),
-		_Utils_Tuple2($author$project$Board$Green, 0),
-		_Utils_Tuple2($author$project$Board$Yellow, 0),
-		_Utils_Tuple2($author$project$Board$Orange, 0)
+		_Utils_Tuple2($author$project$Items$Purple, 5),
+		_Utils_Tuple2($author$project$Items$Green, 5),
+		_Utils_Tuple2($author$project$Items$Yellow, 5),
+		_Utils_Tuple2($author$project$Items$Orange, 5)
 	]);
 var $author$project$Crafting$Alteration = {$: 'Alteration'};
 var $author$project$Crafting$Distillation = {$: 'Distillation'};
 var $author$project$Crafting$Modification = {$: 'Modification'};
-var $author$project$Crafting$emptyScrolls = _List_fromArray(
+var $author$project$Crafting$demoScrolls = _List_fromArray(
 	[
-		_Utils_Tuple2($author$project$Crafting$Modification, 0),
-		_Utils_Tuple2($author$project$Crafting$Augmentation, 0),
-		_Utils_Tuple2($author$project$Crafting$Alteration, 0),
-		_Utils_Tuple2($author$project$Crafting$Distillation, 0)
+		_Utils_Tuple2($author$project$Crafting$Modification, 5),
+		_Utils_Tuple2($author$project$Crafting$Augmentation, 5),
+		_Utils_Tuple2($author$project$Crafting$Alteration, 5),
+		_Utils_Tuple2($author$project$Crafting$Distillation, 5)
 	]);
 var $author$project$Crafting$init = {
-	orbs: $author$project$Crafting$emptyOrbs,
-	scrolls: $author$project$Crafting$emptyScrolls,
+	orbs: $author$project$Crafting$demoOrbs,
+	scrolls: $author$project$Crafting$demoScrolls,
 	selectedEssence: $elm$core$Maybe$Nothing,
 	selectedOrbs: _List_Nil,
 	selectedScroll: $elm$core$Maybe$Just($author$project$Crafting$Augmentation),
 	tile: $elm$core$Maybe$Nothing
 };
-var $author$project$Demo$initBoard = A2(
-	$elm$core$Basics$composeL,
-	A2(
-		$author$project$Board$set,
-		_Utils_Tuple2(1, 2),
-		$author$project$Board$Wall(false)),
-	A2(
-		$author$project$Board$set,
-		_Utils_Tuple2(3, 1),
-		$author$project$Board$Wall(false)))(
-	{
-		colReqs: A3(
-			$elm$core$Dict$insert,
-			2,
-			_Utils_Tuple2(
-				_List_fromArray(
-					[
-						_Utils_Tuple2($author$project$Board$Purple, 0),
-						_Utils_Tuple2($author$project$Board$Green, 3),
-						_Utils_Tuple2($author$project$Board$Yellow, 2),
-						_Utils_Tuple2($author$project$Board$Orange, 0)
-					]),
-				$author$project$Board$emptyScore),
-			$elm$core$Dict$empty),
-		highlight: _List_Nil,
-		pieces: $elm$core$Dict$empty,
-		rowReqs: A3(
-			$elm$core$Dict$insert,
-			1,
-			_Utils_Tuple2(
-				_List_fromArray(
-					[
-						_Utils_Tuple2($author$project$Board$Purple, 3),
-						_Utils_Tuple2($author$project$Board$Green, 2),
-						_Utils_Tuple2($author$project$Board$Yellow, 0),
-						_Utils_Tuple2($author$project$Board$Orange, 0)
-					]),
-				$author$project$Board$emptyScore),
-			A3(
-				$elm$core$Dict$insert,
-				3,
-				_Utils_Tuple2(
-					_List_fromArray(
-						[
-							_Utils_Tuple2($author$project$Board$Purple, 0),
-							_Utils_Tuple2($author$project$Board$Green, 0),
-							_Utils_Tuple2($author$project$Board$Yellow, 2),
-							_Utils_Tuple2($author$project$Board$Orange, 2)
-						]),
-					$author$project$Board$emptyScore),
-				$elm$core$Dict$empty)),
-		tiles: A2(
-			$elm$core$Array$repeat,
-			4,
-			A2(
-				$elm$core$Array$repeat,
-				4,
-				$author$project$Board$NonTile(false)))
-	});
-var $author$project$Demo$probaPiece = {
-	borderTransform: {
-		rotate: 0,
-		translate: _Utils_Tuple2(0, 0)
-	},
-	drawPosition: $elm$core$Maybe$Nothing,
-	level: 1,
-	positions: _List_Nil,
-	req: _List_fromArray(
-		[
-			_Utils_Tuple2($author$project$Board$Purple, 3),
-			_Utils_Tuple2($author$project$Board$Green, 0),
-			_Utils_Tuple2($author$project$Board$Yellow, 0),
-			_Utils_Tuple2($author$project$Board$Orange, 0)
-		]),
-	score: $author$project$Board$emptyScore,
-	shape: $author$project$Board$Twoi(
-		_List_fromArray(
-			[
-				_Utils_Tuple2(0, 0),
-				_Utils_Tuple2(0, 1)
-			]))
-};
-var $author$project$Demo$probaPiece2 = {
-	borderTransform: {
-		rotate: 0,
-		translate: _Utils_Tuple2(0, 0)
-	},
-	drawPosition: $elm$core$Maybe$Nothing,
-	level: 1,
-	positions: _List_Nil,
-	req: _List_fromArray(
-		[
-			_Utils_Tuple2($author$project$Board$Purple, 2),
-			_Utils_Tuple2($author$project$Board$Green, 2),
-			_Utils_Tuple2($author$project$Board$Yellow, 0),
-			_Utils_Tuple2($author$project$Board$Orange, 0)
-		]),
-	score: $author$project$Board$emptyScore,
-	shape: $author$project$Board$Threel(
-		_List_fromArray(
-			[
-				_Utils_Tuple2(0, 0),
-				_Utils_Tuple2(0, -1),
-				_Utils_Tuple2(1, 0)
-			]))
-};
-var $author$project$Demo$probaPiece3 = {
-	borderTransform: {
-		rotate: 0,
-		translate: _Utils_Tuple2(0, 0)
-	},
-	drawPosition: $elm$core$Maybe$Nothing,
-	level: 1,
-	positions: _List_Nil,
-	req: _List_fromArray(
-		[
-			_Utils_Tuple2($author$project$Board$Purple, 0),
-			_Utils_Tuple2($author$project$Board$Green, 2),
-			_Utils_Tuple2($author$project$Board$Yellow, 2),
-			_Utils_Tuple2($author$project$Board$Orange, 0)
-		]),
-	score: $author$project$Board$emptyScore,
-	shape: $author$project$Board$Threei(
-		_List_fromArray(
-			[
-				_Utils_Tuple2(0, 0),
-				_Utils_Tuple2(0, 1),
-				_Utils_Tuple2(0, -1)
-			]))
-};
-var $author$project$Demo$initPieces = $elm$core$Dict$fromList(
-	_List_fromArray(
-		[
-			_Utils_Tuple2(0, $author$project$Demo$probaPiece),
-			_Utils_Tuple2(1, $author$project$Demo$probaPiece2),
-			_Utils_Tuple2(2, $author$project$Demo$probaPiece3)
-		]));
-var $author$project$Demo$probaTile = {addBonus: 0, baseValue: 1, color: $author$project$Board$Green, currentValue: 1, drawPosition: $elm$core$Maybe$Nothing, level: 1, prodBonus: 0, properties: _List_Nil};
-var $author$project$Demo$probaProperty = {
-	addBonus: 1,
-	isMet: false,
-	prodBonus: 0,
-	region: _List_fromArray(
-		[
-			_Utils_Tuple2(1, 0),
-			_Utils_Tuple2(1, -1)
-		]),
-	reqColor: $author$project$Board$Green,
-	reqValue: 2
-};
-var $author$project$Demo$probaProperty2 = {
-	addBonus: 0,
-	isMet: false,
-	prodBonus: 1,
-	region: _List_fromArray(
-		[
-			_Utils_Tuple2(1, 0),
-			_Utils_Tuple2(1, 1)
-		]),
-	reqColor: $author$project$Board$Green,
-	reqValue: 3
-};
-var $author$project$Demo$probaTile2 = {
-	addBonus: 0,
-	baseValue: 1,
-	color: $author$project$Board$Purple,
-	currentValue: 1,
-	drawPosition: $elm$core$Maybe$Nothing,
-	level: 1,
-	prodBonus: 0,
-	properties: _List_fromArray(
-		[$author$project$Demo$probaProperty2, $author$project$Demo$probaProperty])
-};
-var $author$project$Demo$probaProperty3 = {
-	addBonus: 0,
-	isMet: false,
-	prodBonus: 1,
-	region: _List_fromArray(
-		[
-			_Utils_Tuple2(1, 0),
-			_Utils_Tuple2(1, -1),
-			_Utils_Tuple2(0, -1)
-		]),
-	reqColor: $author$project$Board$Purple,
-	reqValue: 2
-};
-var $author$project$Demo$probaTile3 = {
-	addBonus: 0,
-	baseValue: 1,
-	color: $author$project$Board$Green,
-	currentValue: 1,
-	drawPosition: $elm$core$Maybe$Nothing,
-	level: 1,
-	prodBonus: 0,
-	properties: _List_fromArray(
-		[$author$project$Demo$probaProperty3])
-};
-var $author$project$Demo$probaProperty4 = {
-	addBonus: 0,
-	isMet: false,
-	prodBonus: 1,
-	region: _List_fromArray(
-		[
-			_Utils_Tuple2(1, 0),
-			_Utils_Tuple2(1, -1),
-			_Utils_Tuple2(0, -1)
-		]),
-	reqColor: $author$project$Board$Green,
-	reqValue: 1
-};
-var $author$project$Demo$probaTile4 = {
-	addBonus: 0,
-	baseValue: 1,
-	color: $author$project$Board$Orange,
-	currentValue: 1,
-	drawPosition: $elm$core$Maybe$Nothing,
-	level: 1,
-	prodBonus: 0,
-	properties: _List_fromArray(
-		[$author$project$Demo$probaProperty4])
-};
-var $author$project$Demo$probaProperty5 = {
-	addBonus: 1,
-	isMet: false,
-	prodBonus: 0,
-	region: _List_fromArray(
-		[
-			_Utils_Tuple2(0, -1),
-			_Utils_Tuple2(0, 1)
-		]),
-	reqColor: $author$project$Board$Orange,
-	reqValue: 2
-};
-var $author$project$Demo$probaTile5 = {
-	addBonus: 0,
-	baseValue: 1,
-	color: $author$project$Board$Yellow,
-	currentValue: 1,
-	drawPosition: $elm$core$Maybe$Nothing,
-	level: 1,
-	prodBonus: 0,
-	properties: _List_fromArray(
-		[$author$project$Demo$probaProperty5])
-};
-var $author$project$Demo$probaProperty6 = {
-	addBonus: 1,
-	isMet: false,
-	prodBonus: 0,
-	region: _List_fromArray(
-		[
-			_Utils_Tuple2(0, -1),
-			_Utils_Tuple2(1, 0)
-		]),
-	reqColor: $author$project$Board$Yellow,
-	reqValue: 2
-};
-var $author$project$Demo$probaTile6 = {
-	addBonus: 0,
-	baseValue: 1,
-	color: $author$project$Board$Green,
-	currentValue: 1,
-	drawPosition: $elm$core$Maybe$Nothing,
-	level: 1,
-	prodBonus: 0,
-	properties: _List_fromArray(
-		[$author$project$Demo$probaProperty6])
-};
-var $author$project$Demo$initTiles = $elm$core$Dict$fromList(
-	_List_fromArray(
-		[
-			_Utils_Tuple2(0, $author$project$Demo$probaTile),
-			_Utils_Tuple2(1, $author$project$Demo$probaTile2),
-			_Utils_Tuple2(2, $author$project$Demo$probaTile3),
-			_Utils_Tuple2(3, $author$project$Demo$probaTile4),
-			_Utils_Tuple2(4, $author$project$Demo$probaTile5),
-			_Utils_Tuple2(5, $author$project$Demo$probaTile6)
-		]));
+var $author$project$ProcGen$init = {level: 1, nextPieceId: 0, nextTileId: 0};
+var $author$project$Main$noBoard = {colReqs: $elm$core$Dict$empty, highlight: _List_Nil, pieces: _List_Nil, rowReqs: $elm$core$Dict$empty, tiles: $elm$core$Array$empty};
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
 		{
-			board: $author$project$Demo$initBoard,
+			board: $author$project$Main$noBoard,
+			craftingBenchHovered: false,
 			craftingTable: $author$project$Crafting$init,
-			dragedItem: $author$project$Board$None,
+			dragedItem: $author$project$Items$None,
+			essences: _List_Nil,
 			hoveredPiece: $elm$core$Maybe$Nothing,
 			hoveredTile: $elm$core$Maybe$Nothing,
 			mousePos: _Utils_Tuple2(0, 0),
-			pieces: $author$project$Demo$initPieces,
+			pieces: _List_Nil,
+			procGenState: $author$project$ProcGen$init,
 			showTileTooltip: false,
-			tiles: $author$project$Demo$initTiles
+			tiles: _List_Nil
 		},
 		$elm$core$Platform$Cmd$batch(
 			_List_fromArray(
@@ -7186,15 +7049,12 @@ var $author$project$Main$init = function (_v0) {
 					$author$project$ProcGen$generateBoard(2)),
 					A2(
 					$elm$random$Random$generate,
-					$author$project$Main$NewPieceDict,
-					$author$project$ProcGen$generatePieceDict(2)),
+					$author$project$Main$NewPieceList,
+					$author$project$ProcGen$generatePieceList($author$project$ProcGen$init)),
 					A2(
 					$elm$random$Random$generate,
 					$author$project$Main$NewTileList,
-					A2(
-						$elm$random$Random$list,
-						12,
-						$author$project$ProcGen$generateTile(2)))
+					A2($author$project$ProcGen$generateTileList, 12, $author$project$ProcGen$init))
 				])));
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
@@ -7565,119 +7425,451 @@ var $author$project$Main$subscriptions = function (model) {
 				$elm$browser$Browser$Events$onKeyUp($author$project$Main$keyUpDecoder)
 			]));
 };
-var $author$project$Board$DragPieceFromBoard = function (a) {
-	return {$: 'DragPieceFromBoard', a: a};
+var $author$project$Main$CraftingMsg = function (a) {
+	return {$: 'CraftingMsg', a: a};
 };
-var $author$project$Board$DragTileFromBoard = function (a) {
-	return {$: 'DragTileFromBoard', a: a};
+var $author$project$Items$DragPiece = function (a) {
+	return {$: 'DragPiece', a: a};
 };
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
+var $author$project$Items$DragTile = function (a) {
+	return {$: 'DragTile', a: a};
+};
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$Board$Empty = F2(
+	function (a, b) {
+		return {$: 'Empty', a: a, b: b};
 	});
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
+var $author$project$Board$Filled = F3(
+	function (a, b, c) {
+		return {$: 'Filled', a: a, b: b, c: c};
+	});
+var $author$project$Board$setHighlight = F2(
+	function (highlight, field) {
+		switch (field.$) {
+			case 'NonTile':
+				return $author$project$Board$NonTile(highlight);
+			case 'Empty':
+				var pieceId = field.a;
+				return A2($author$project$Board$Empty, pieceId, highlight);
+			case 'Filled':
+				var pieceId = field.a;
+				var tile = field.b;
+				return A3($author$project$Board$Filled, pieceId, tile, highlight);
+			default:
+				return $author$project$Board$Wall(highlight);
+		}
+	});
+var $elm$core$Maybe$andThen = F2(
+	function (callback, maybeValue) {
+		if (maybeValue.$ === 'Just') {
+			var value = maybeValue.a;
+			return callback(value);
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $author$project$Board$get = F2(
+	function (_v0, board) {
+		var col = _v0.a;
+		var row = _v0.b;
+		return A2(
+			$elm$core$Maybe$andThen,
+			$elm$core$Array$get(col),
+			A2($elm$core$Array$get, row, board.tiles));
+	});
+var $author$project$Board$update = F3(
+	function (f, board, index) {
+		var _v0 = A2($author$project$Board$get, index, board);
+		if (_v0.$ === 'Just') {
+			var field = _v0.a;
+			return A3(
+				$author$project$Board$set,
+				index,
+				f(field),
+				board);
+		} else {
+			return board;
+		}
+	});
+var $author$project$Board$removeHighlight = function (board) {
+	var highlightedTiles = A3(
+		$elm$core$List$foldr,
+		F2(
+			function (index, brd) {
+				return A3(
+					$author$project$Board$update,
+					$author$project$Board$setHighlight(false),
+					brd,
+					index);
+			}),
+		board,
+		board.highlight);
+	return _Utils_update(
+		highlightedTiles,
+		{highlight: _List_Nil});
 };
-var $elm$core$List$any = F2(
-	function (isOkay, list) {
-		any:
+var $author$project$Main$dragEnd = F2(
+	function (success, model) {
+		var addedToHand = function () {
+			if (!success) {
+				var _v0 = model.dragedItem;
+				switch (_v0.$) {
+					case 'DragTile':
+						var tile = _v0.a;
+						return _Utils_update(
+							model,
+							{
+								tiles: A2($elm$core$List$cons, tile, model.tiles)
+							});
+					case 'DragPiece':
+						var piece = _v0.a;
+						return _Utils_update(
+							model,
+							{
+								pieces: A2(
+									$elm$core$List$cons,
+									_Utils_update(
+										piece,
+										{drawPosition: $elm$core$Maybe$Nothing, positions: _List_Nil}),
+									model.pieces)
+							});
+					default:
+						return model;
+				}
+			} else {
+				return model;
+			}
+		}();
+		return _Utils_Tuple2(
+			_Utils_update(
+				addedToHand,
+				{
+					board: $author$project$Board$removeHighlight(model.board),
+					dragedItem: $author$project$Items$None
+				}),
+			$elm$core$Platform$Cmd$none);
+	});
+var $elm_community$list_extra$List$Extra$find = F2(
+	function (predicate, list) {
+		find:
 		while (true) {
 			if (!list.b) {
-				return false;
+				return $elm$core$Maybe$Nothing;
 			} else {
-				var x = list.a;
-				var xs = list.b;
-				if (isOkay(x)) {
-					return true;
+				var first = list.a;
+				var rest = list.b;
+				if (predicate(first)) {
+					return $elm$core$Maybe$Just(first);
 				} else {
-					var $temp$isOkay = isOkay,
-						$temp$list = xs;
-					isOkay = $temp$isOkay;
+					var $temp$predicate = predicate,
+						$temp$list = rest;
+					predicate = $temp$predicate;
 					list = $temp$list;
-					continue any;
+					continue find;
 				}
 			}
 		}
 	});
-var $elm$core$List$member = F2(
-	function (x, xs) {
-		return A2(
-			$elm$core$List$any,
-			function (a) {
-				return _Utils_eq(a, x);
-			},
-			xs);
+var $elm$core$Tuple$mapBoth = F3(
+	function (funcA, funcB, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return _Utils_Tuple2(
+			funcA(x),
+			funcB(y));
 	});
-var $elm$core$Basics$not = _Basics_not;
-var $elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
+var $author$project$Items$shapeToIndexes = function (shape) {
+	switch (shape.$) {
+		case 'Twoi':
+			var indexes = shape.a;
+			return indexes;
+		case 'Threel':
+			var indexes = shape.a;
+			return indexes;
+		case 'Threei':
+			var indexes = shape.a;
+			return indexes;
+		case 'Fouro':
+			var indexes = shape.a;
+			return indexes;
+		case 'Fourt':
+			var indexes = shape.a;
+			return indexes;
+		case 'Fours':
+			var indexes = shape.a;
+			return indexes;
+		case 'Fourz':
+			var indexes = shape.a;
+			return indexes;
+		default:
+			var indexes = shape.a;
+			return indexes;
+	}
+};
+var $author$project$Items$newDrawPosition = F2(
+	function (mIndex, piece) {
+		if (mIndex.$ === 'Just') {
+			var _v1 = mIndex.a;
+			var x = _v1.a;
+			var y = _v1.b;
+			var positions = A2(
+				$elm$core$List$map,
+				A2(
+					$elm$core$Tuple$mapBoth,
+					$elm$core$Basics$add(x),
+					$elm$core$Basics$add(y)),
+				$author$project$Items$shapeToIndexes(piece.shape));
+			return _Utils_update(
+				piece,
+				{drawPosition: mIndex, positions: positions});
 		} else {
-			return _default;
+			return _Utils_update(
+				piece,
+				{drawPosition: mIndex, positions: _List_Nil});
 		}
 	});
-var $author$project$Board$addToPieceDict = F2(
-	function (piece, dict) {
-		var keys = $elm$core$Dict$keys(dict);
-		var newKey = A2(
-			$elm$core$Maybe$withDefault,
-			0,
-			A3(
-				$elm$core$Basics$composeL,
-				$elm$core$List$head,
-				$elm$core$List$filter(
-					function (n) {
-						return !A2($elm$core$List$member, n, keys);
-					}),
-				A2(
-					$elm$core$List$range,
-					0,
-					$elm$core$List$length(keys))));
-		return _Utils_Tuple2(
-			newKey,
-			A3($elm$core$Dict$insert, newKey, piece, dict));
+var $author$project$Items$indexDrag = F2(
+	function (index, drag) {
+		switch (drag.$) {
+			case 'DragPiece':
+				var piece = drag.a;
+				return $author$project$Items$DragPiece(
+					A2($author$project$Items$newDrawPosition, index, piece));
+			case 'DragTile':
+				var tile = drag.a;
+				return $author$project$Items$DragTile(
+					_Utils_update(
+						tile,
+						{drawPosition: index}));
+			default:
+				return $author$project$Items$None;
+		}
 	});
-var $author$project$Board$addToTileDict = F2(
-	function (tile, dict) {
-		var keys = $elm$core$Dict$keys(dict);
-		var newKey = A2(
-			$elm$core$Maybe$withDefault,
-			0,
-			A3(
-				$elm$core$Basics$composeL,
-				$elm$core$List$head,
-				$elm$core$List$filter(
-					function (n) {
-						return !A2($elm$core$List$member, n, keys);
-					}),
-				A2(
-					$elm$core$List$range,
-					0,
-					$elm$core$List$length(keys))));
-		return A3(
-			$elm$core$Dict$insert,
-			newKey,
-			_Utils_update(
-				tile,
-				{drawPosition: $elm$core$Maybe$Nothing}),
-			dict);
+var $author$project$Board$CannotAddPieceFieldIsOccupied = {$: 'CannotAddPieceFieldIsOccupied'};
+var $author$project$Board$CannotInsertPieceDrawPositionNothing = {$: 'CannotInsertPieceDrawPositionNothing'};
+var $elm$core$List$all = F2(
+	function (isOkay, list) {
+		return !A2(
+			$elm$core$List$any,
+			A2($elm$core$Basics$composeL, $elm$core$Basics$not, isOkay),
+			list);
 	});
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$Board$insertPiece = F2(
+	function (piece, board) {
+		var canAdd = A2(
+			$elm$core$List$all,
+			function (index) {
+				var _v0 = A2($author$project$Board$get, index, board);
+				if ((_v0.$ === 'Just') && (_v0.a.$ === 'NonTile')) {
+					return true;
+				} else {
+					return false;
+				}
+			},
+			piece.positions);
+		return canAdd ? (_Utils_eq(piece.drawPosition, $elm$core$Maybe$Nothing) ? $elm$core$Result$Err($author$project$Board$CannotInsertPieceDrawPositionNothing) : $elm$core$Result$Ok(
+			A3(
+				$elm$core$List$foldr,
+				F2(
+					function (ind, brd) {
+						return _Utils_update(
+							brd,
+							{
+								tiles: A3(
+									$author$project$Board$set,
+									ind,
+									A2($author$project$Board$Empty, piece.id, false),
+									brd).tiles
+							});
+					}),
+				_Utils_update(
+					board,
+					{
+						pieces: A2($elm$core$List$cons, piece, board.pieces)
+					}),
+				piece.positions))) : $elm$core$Result$Err($author$project$Board$CannotAddPieceFieldIsOccupied);
+	});
+var $author$project$Board$CannotAddTileFieldNotEmpty = function (a) {
+	return {$: 'CannotAddTileFieldNotEmpty', a: a};
+};
+var $author$project$Board$CannotInsertTileDrawPositionNothing = {$: 'CannotInsertTileDrawPositionNothing'};
+var $author$project$Board$neighbourIndexes = function (_v0) {
+	var xIndex = _v0.a;
+	var yIndex = _v0.b;
+	var difs = _List_fromArray(
+		[
+			_Utils_Tuple2(-1, 1),
+			_Utils_Tuple2(0, 1),
+			_Utils_Tuple2(1, 1),
+			_Utils_Tuple2(-1, 0),
+			_Utils_Tuple2(1, 0),
+			_Utils_Tuple2(-1, -1),
+			_Utils_Tuple2(0, -1),
+			_Utils_Tuple2(1, -1)
+		]);
+	return A2(
+		$elm$core$List$filter,
+		function (_v1) {
+			var a = _v1.a;
+			var b = _v1.b;
+			return (a >= 0) && ((a <= 3) && ((b >= 0) && (b <= 3)));
+		},
+		A2(
+			$elm$core$List$map,
+			function (_v2) {
+				var a = _v2.a;
+				var b = _v2.b;
+				return _Utils_Tuple2(a + xIndex, b + yIndex);
+			},
+			difs));
+};
+var $author$project$Board$checkProperty = F3(
+	function (_v0, property, board) {
+		var xIndex = _v0.a;
+		var yIndex = _v0.b;
+		return _Utils_cmp(
+			property.reqValue,
+			$elm$core$List$sum(
+				A2(
+					$elm$core$List$map,
+					function (_v1) {
+						var x = _v1.a;
+						var y = _v1.b;
+						var _v2 = A2(
+							$author$project$Board$get,
+							_Utils_Tuple2(xIndex + x, yIndex + y),
+							board);
+						if ((_v2.$ === 'Just') && (_v2.a.$ === 'Filled')) {
+							var _v3 = _v2.a;
+							var tile = _v3.b;
+							return _Utils_eq(tile.color, property.reqColor) ? tile.currentValue : 0;
+						} else {
+							return 0;
+						}
+					},
+					property.region))) < 1;
+	});
+var $author$project$Board$updateTile = F3(
+	function (tile, index, board) {
+		var checkedProps = A2(
+			$elm$core$List$map,
+			function (prop) {
+				return A3($author$project$Board$checkProperty, index, prop, board) ? _Utils_update(
+					prop,
+					{isMet: true}) : _Utils_update(
+					prop,
+					{isMet: false});
+			},
+			tile.properties);
+		var prodBonus = $elm$core$List$sum(
+			A2(
+				$elm$core$List$map,
+				function ($) {
+					return $.prodBonus;
+				},
+				A2(
+					$elm$core$List$filter,
+					function ($) {
+						return $.isMet;
+					},
+					checkedProps)));
+		var addBonus = $elm$core$List$sum(
+			A2(
+				$elm$core$List$map,
+				function ($) {
+					return $.addBonus;
+				},
+				A2(
+					$elm$core$List$filter,
+					function ($) {
+						return $.isMet;
+					},
+					checkedProps)));
+		return _Utils_update(
+			tile,
+			{
+				addBonus: addBonus,
+				currentValue: $elm$core$Basics$floor((tile.baseValue * (prodBonus + 1)) + addBonus),
+				prodBonus: prodBonus,
+				properties: checkedProps
+			});
+	});
+var $author$project$Board$checkAroundTile = F2(
+	function (tileIndex, board) {
+		return A2(
+			$elm$core$List$filterMap,
+			function (index) {
+				var _v0 = A2($author$project$Board$get, index, board);
+				if ((_v0.$ === 'Just') && (_v0.a.$ === 'Filled')) {
+					var _v1 = _v0.a;
+					var pieceId = _v1.a;
+					var tile = _v1.b;
+					var highlight = _v1.c;
+					var updatedTile = A3($author$project$Board$updateTile, tile, index, board);
+					return _Utils_eq(tile.currentValue, updatedTile.currentValue) ? $elm$core$Maybe$Nothing : $elm$core$Maybe$Just(
+						_Utils_Tuple2(
+							A3($author$project$Board$Filled, pieceId, updatedTile, highlight),
+							index));
+				} else {
+					return $elm$core$Maybe$Nothing;
+				}
+			},
+			$author$project$Board$neighbourIndexes(tileIndex));
+	});
+var $author$project$Board$addScoresInRegion = F2(
+	function (board, region) {
+		var folding = F2(
+			function (index, score) {
+				var _v0 = A2($author$project$Board$get, index, board);
+				if ((_v0.$ === 'Just') && (_v0.a.$ === 'Filled')) {
+					var _v1 = _v0.a;
+					var tile = _v1.b;
+					return A3(
+						$elm_community$list_extra$List$Extra$updateIf,
+						A2(
+							$elm$core$Basics$composeL,
+							$elm$core$Basics$eq(tile.color),
+							$elm$core$Tuple$first),
+						$elm$core$Tuple$mapSecond(
+							$elm$core$Basics$add(tile.currentValue)),
+						score);
+				} else {
+					return score;
+				}
+			});
+		return A3($elm$core$List$foldr, folding, $author$project$Items$emptyScore, region);
+	});
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
+	});
 var $elm$core$Dict$getMin = function (dict) {
 	getMin:
 	while (true) {
@@ -8040,110 +8232,6 @@ var $elm$core$Dict$remove = F2(
 			return x;
 		}
 	});
-var $author$project$Board$Empty = F2(
-	function (a, b) {
-		return {$: 'Empty', a: a, b: b};
-	});
-var $author$project$Board$Filled = F3(
-	function (a, b, c) {
-		return {$: 'Filled', a: a, b: b, c: c};
-	});
-var $author$project$Board$setHighlight = F2(
-	function (highlight, field) {
-		switch (field.$) {
-			case 'NonTile':
-				return $author$project$Board$NonTile(highlight);
-			case 'Empty':
-				var pieceId = field.a;
-				return A2($author$project$Board$Empty, pieceId, highlight);
-			case 'Filled':
-				var pieceId = field.a;
-				var tile = field.b;
-				return A3($author$project$Board$Filled, pieceId, tile, highlight);
-			default:
-				return $author$project$Board$Wall(highlight);
-		}
-	});
-var $elm$core$Maybe$andThen = F2(
-	function (callback, maybeValue) {
-		if (maybeValue.$ === 'Just') {
-			var value = maybeValue.a;
-			return callback(value);
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $author$project$Board$get = F2(
-	function (_v0, board) {
-		var col = _v0.a;
-		var row = _v0.b;
-		return A2(
-			$elm$core$Maybe$andThen,
-			$elm$core$Array$get(col),
-			A2($elm$core$Array$get, row, board.tiles));
-	});
-var $author$project$Board$update = F3(
-	function (f, board, index) {
-		var _v0 = A2($author$project$Board$get, index, board);
-		if (_v0.$ === 'Just') {
-			var field = _v0.a;
-			return A3(
-				$author$project$Board$set,
-				index,
-				f(field),
-				board);
-		} else {
-			return board;
-		}
-	});
-var $author$project$Board$removeHighlight = function (board) {
-	var highlightedTiles = A3(
-		$elm$core$List$foldr,
-		F2(
-			function (index, brd) {
-				return A3(
-					$author$project$Board$update,
-					$author$project$Board$setHighlight(false),
-					brd,
-					index);
-			}),
-		board,
-		board.highlight);
-	return _Utils_update(
-		highlightedTiles,
-		{highlight: _List_Nil});
-};
-var $elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
-				switch (_v1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return $elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
 var $elm$core$Dict$update = F3(
 	function (targetKey, alter, dictionary) {
 		var _v0 = alter(
@@ -8154,421 +8242,6 @@ var $elm$core$Dict$update = F3(
 		} else {
 			return A2($elm$core$Dict$remove, targetKey, dictionary);
 		}
-	});
-var $author$project$Main$dragEnd = F2(
-	function (success, model) {
-		var removedFromHand = function () {
-			if (success) {
-				var _v0 = model.dragedItem;
-				switch (_v0.$) {
-					case 'DragTileFromHand':
-						var id = _v0.b;
-						return _Utils_update(
-							model,
-							{
-								tiles: A2($elm$core$Dict$remove, id, model.tiles)
-							});
-					case 'DragPieceFromHand':
-						var id = _v0.b;
-						return _Utils_update(
-							model,
-							{
-								pieces: A2($elm$core$Dict$remove, id, model.pieces)
-							});
-					default:
-						return model;
-				}
-			} else {
-				var _v1 = model.dragedItem;
-				switch (_v1.$) {
-					case 'DragPieceFromBoard':
-						var piece = _v1.a;
-						return _Utils_update(
-							model,
-							{
-								pieces: A2(
-									$author$project$Board$addToPieceDict,
-									_Utils_update(
-										piece,
-										{drawPosition: $elm$core$Maybe$Nothing, positions: _List_Nil}),
-									model.pieces).b
-							});
-					case 'DragTileFromBoard':
-						var tile = _v1.a;
-						return _Utils_update(
-							model,
-							{
-								tiles: A2($author$project$Board$addToTileDict, tile, model.tiles)
-							});
-					case 'DragPieceFromHand':
-						var piece = _v1.a;
-						var pieceId = _v1.b;
-						return _Utils_update(
-							model,
-							{
-								pieces: A3(
-									$elm$core$Dict$update,
-									pieceId,
-									function (_v2) {
-										return $elm$core$Maybe$Just(
-											_Utils_update(
-												piece,
-												{drawPosition: $elm$core$Maybe$Nothing, positions: _List_Nil}));
-									},
-									model.pieces)
-							});
-					case 'DragTileFromHand':
-						var tile = _v1.a;
-						var tileId = _v1.b;
-						return _Utils_update(
-							model,
-							{
-								tiles: A3(
-									$elm$core$Dict$update,
-									tileId,
-									function (_v3) {
-										return $elm$core$Maybe$Just(tile);
-									},
-									model.tiles)
-							});
-					default:
-						return model;
-				}
-			}
-		}();
-		return _Utils_Tuple2(
-			_Utils_update(
-				removedFromHand,
-				{
-					board: $author$project$Board$removeHighlight(model.board),
-					dragedItem: $author$project$Board$None
-				}),
-			$elm$core$Platform$Cmd$none);
-	});
-var $author$project$Board$highlightPiece = F2(
-	function (board, piece) {
-		var highlightedTiles = A3(
-			$elm$core$List$foldr,
-			F2(
-				function (index, brd) {
-					return A3(
-						$author$project$Board$update,
-						$author$project$Board$setHighlight(true),
-						brd,
-						index);
-				}),
-			board,
-			piece.positions);
-		return _Utils_update(
-			highlightedTiles,
-			{highlight: piece.positions});
-	});
-var $author$project$Board$highlightBoard = F2(
-	function (board, drag) {
-		switch (drag.$) {
-			case 'DragPieceFromHand':
-				var piece = drag.a;
-				return A2($author$project$Board$highlightPiece, board, piece);
-			case 'DragPieceFromBoard':
-				var piece = drag.a;
-				return A2($author$project$Board$highlightPiece, board, piece);
-			default:
-				return board;
-		}
-	});
-var $author$project$Board$DragPieceFromHand = F2(
-	function (a, b) {
-		return {$: 'DragPieceFromHand', a: a, b: b};
-	});
-var $author$project$Board$DragTileFromHand = F2(
-	function (a, b) {
-		return {$: 'DragTileFromHand', a: a, b: b};
-	});
-var $elm$core$Tuple$mapBoth = F3(
-	function (funcA, funcB, _v0) {
-		var x = _v0.a;
-		var y = _v0.b;
-		return _Utils_Tuple2(
-			funcA(x),
-			funcB(y));
-	});
-var $author$project$Board$shapeToIndexes = function (shape) {
-	switch (shape.$) {
-		case 'Twoi':
-			var indexes = shape.a;
-			return indexes;
-		case 'Threel':
-			var indexes = shape.a;
-			return indexes;
-		case 'Threei':
-			var indexes = shape.a;
-			return indexes;
-		case 'Fouro':
-			var indexes = shape.a;
-			return indexes;
-		case 'Fourt':
-			var indexes = shape.a;
-			return indexes;
-		case 'Fours':
-			var indexes = shape.a;
-			return indexes;
-		case 'Fourz':
-			var indexes = shape.a;
-			return indexes;
-		default:
-			var indexes = shape.a;
-			return indexes;
-	}
-};
-var $author$project$Board$newDrawPosition = F2(
-	function (mIndex, piece) {
-		if (mIndex.$ === 'Just') {
-			var _v1 = mIndex.a;
-			var x = _v1.a;
-			var y = _v1.b;
-			var positions = A2(
-				$elm$core$List$map,
-				A2(
-					$elm$core$Tuple$mapBoth,
-					$elm$core$Basics$add(x),
-					$elm$core$Basics$add(y)),
-				$author$project$Board$shapeToIndexes(piece.shape));
-			return _Utils_update(
-				piece,
-				{drawPosition: mIndex, positions: positions});
-		} else {
-			return _Utils_update(
-				piece,
-				{drawPosition: mIndex, positions: _List_Nil});
-		}
-	});
-var $author$project$Board$indexDrag = F2(
-	function (index, drag) {
-		switch (drag.$) {
-			case 'DragPieceFromHand':
-				var piece = drag.a;
-				var id = drag.b;
-				return A2(
-					$author$project$Board$DragPieceFromHand,
-					A2($author$project$Board$newDrawPosition, index, piece),
-					id);
-			case 'DragPieceFromBoard':
-				var piece = drag.a;
-				return $author$project$Board$DragPieceFromBoard(
-					A2($author$project$Board$newDrawPosition, index, piece));
-			case 'DragTileFromHand':
-				var tile = drag.a;
-				var id = drag.b;
-				return A2(
-					$author$project$Board$DragTileFromHand,
-					_Utils_update(
-						tile,
-						{drawPosition: index}),
-					id);
-			case 'DragTileFromBoard':
-				var tile = drag.a;
-				return $author$project$Board$DragTileFromBoard(
-					_Utils_update(
-						tile,
-						{drawPosition: index}));
-			default:
-				return $author$project$Board$None;
-		}
-	});
-var $author$project$Board$CannotAddPieceFieldIsOccupied = {$: 'CannotAddPieceFieldIsOccupied'};
-var $author$project$Board$CannotInsertPieceDrawPositionNothing = {$: 'CannotInsertPieceDrawPositionNothing'};
-var $elm$core$List$all = F2(
-	function (isOkay, list) {
-		return !A2(
-			$elm$core$List$any,
-			A2($elm$core$Basics$composeL, $elm$core$Basics$not, isOkay),
-			list);
-	});
-var $author$project$Board$insertPiece = F2(
-	function (piece, board) {
-		var canAdd = A2(
-			$elm$core$List$all,
-			function (index) {
-				var _v1 = A2($author$project$Board$get, index, board);
-				if ((_v1.$ === 'Just') && (_v1.a.$ === 'NonTile')) {
-					return true;
-				} else {
-					return false;
-				}
-			},
-			piece.positions);
-		var _v0 = A2($author$project$Board$addToPieceDict, piece, board.pieces);
-		var newId = _v0.a;
-		var newDict = _v0.b;
-		return canAdd ? (_Utils_eq(piece.drawPosition, $elm$core$Maybe$Nothing) ? $elm$core$Result$Err($author$project$Board$CannotInsertPieceDrawPositionNothing) : $elm$core$Result$Ok(
-			A3(
-				$elm$core$List$foldr,
-				F2(
-					function (ind, brd) {
-						return _Utils_update(
-							brd,
-							{
-								tiles: A3(
-									$author$project$Board$set,
-									ind,
-									A2($author$project$Board$Empty, newId, false),
-									brd).tiles
-							});
-					}),
-				_Utils_update(
-					board,
-					{pieces: newDict}),
-				piece.positions))) : $elm$core$Result$Err($author$project$Board$CannotAddPieceFieldIsOccupied);
-	});
-var $author$project$Board$CannotAddTileFieldNotEmpty = function (a) {
-	return {$: 'CannotAddTileFieldNotEmpty', a: a};
-};
-var $author$project$Board$CannotInsertTileDrawPositionNothing = {$: 'CannotInsertTileDrawPositionNothing'};
-var $author$project$Board$neighbourIndexes = function (_v0) {
-	var xIndex = _v0.a;
-	var yIndex = _v0.b;
-	var difs = _List_fromArray(
-		[
-			_Utils_Tuple2(-1, 1),
-			_Utils_Tuple2(0, 1),
-			_Utils_Tuple2(1, 1),
-			_Utils_Tuple2(-1, 0),
-			_Utils_Tuple2(1, 0),
-			_Utils_Tuple2(-1, -1),
-			_Utils_Tuple2(0, -1),
-			_Utils_Tuple2(1, -1)
-		]);
-	return A2(
-		$elm$core$List$filter,
-		function (_v1) {
-			var a = _v1.a;
-			var b = _v1.b;
-			return (a >= 0) && ((a <= 3) && ((b >= 0) && (b <= 3)));
-		},
-		A2(
-			$elm$core$List$map,
-			function (_v2) {
-				var a = _v2.a;
-				var b = _v2.b;
-				return _Utils_Tuple2(a + xIndex, b + yIndex);
-			},
-			difs));
-};
-var $author$project$Board$checkProperty = F3(
-	function (_v0, property, board) {
-		var xIndex = _v0.a;
-		var yIndex = _v0.b;
-		return _Utils_cmp(
-			property.reqValue,
-			$elm$core$List$sum(
-				A2(
-					$elm$core$List$map,
-					function (_v1) {
-						var x = _v1.a;
-						var y = _v1.b;
-						var _v2 = A2(
-							$author$project$Board$get,
-							_Utils_Tuple2(xIndex + x, yIndex + y),
-							board);
-						if ((_v2.$ === 'Just') && (_v2.a.$ === 'Filled')) {
-							var _v3 = _v2.a;
-							var tile = _v3.b;
-							return _Utils_eq(tile.color, property.reqColor) ? tile.currentValue : 0;
-						} else {
-							return 0;
-						}
-					},
-					property.region))) < 1;
-	});
-var $author$project$Board$updateTile = F3(
-	function (tile, index, board) {
-		var checkedProps = A2(
-			$elm$core$List$map,
-			function (prop) {
-				return A3($author$project$Board$checkProperty, index, prop, board) ? _Utils_update(
-					prop,
-					{isMet: true}) : _Utils_update(
-					prop,
-					{isMet: false});
-			},
-			tile.properties);
-		var prodBonus = $elm$core$List$sum(
-			A2(
-				$elm$core$List$map,
-				function ($) {
-					return $.prodBonus;
-				},
-				A2(
-					$elm$core$List$filter,
-					function ($) {
-						return $.isMet;
-					},
-					checkedProps)));
-		var addBonus = $elm$core$List$sum(
-			A2(
-				$elm$core$List$map,
-				function ($) {
-					return $.addBonus;
-				},
-				A2(
-					$elm$core$List$filter,
-					function ($) {
-						return $.isMet;
-					},
-					checkedProps)));
-		return _Utils_update(
-			tile,
-			{
-				addBonus: addBonus,
-				currentValue: $elm$core$Basics$floor((tile.baseValue * (prodBonus + 1)) + addBonus),
-				prodBonus: prodBonus,
-				properties: checkedProps
-			});
-	});
-var $author$project$Board$checkAroundTile = F2(
-	function (tileIndex, board) {
-		return A2(
-			$elm$core$List$filterMap,
-			function (index) {
-				var _v0 = A2($author$project$Board$get, index, board);
-				if ((_v0.$ === 'Just') && (_v0.a.$ === 'Filled')) {
-					var _v1 = _v0.a;
-					var pieceId = _v1.a;
-					var tile = _v1.b;
-					var highlight = _v1.c;
-					var updatedTile = A3($author$project$Board$updateTile, tile, index, board);
-					return _Utils_eq(tile.currentValue, updatedTile.currentValue) ? $elm$core$Maybe$Nothing : $elm$core$Maybe$Just(
-						_Utils_Tuple2(
-							A3($author$project$Board$Filled, pieceId, updatedTile, highlight),
-							index));
-				} else {
-					return $elm$core$Maybe$Nothing;
-				}
-			},
-			$author$project$Board$neighbourIndexes(tileIndex));
-	});
-var $author$project$Board$addScoresInRegion = F2(
-	function (board, region) {
-		var folding = F2(
-			function (index, score) {
-				var _v0 = A2($author$project$Board$get, index, board);
-				if ((_v0.$ === 'Just') && (_v0.a.$ === 'Filled')) {
-					var _v1 = _v0.a;
-					var tile = _v1.b;
-					return A3(
-						$elm_community$list_extra$List$Extra$updateIf,
-						A2(
-							$elm$core$Basics$composeL,
-							$elm$core$Basics$eq(tile.color),
-							$elm$core$Tuple$first),
-						$elm$core$Tuple$mapSecond(
-							$elm$core$Basics$add(tile.currentValue)),
-						score);
-				} else {
-					return score;
-				}
-			});
-		return A3($elm$core$List$foldr, folding, $author$project$Board$emptyScore, region);
 	});
 var $author$project$Board$calculateColScore = F2(
 	function (board, index) {
@@ -8634,6 +8307,15 @@ var $author$project$Board$calculateRowScore = F2(
 					board.rowReqs)
 			});
 	});
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
 var $author$project$Board$updateScoreOnTileChange = F2(
 	function (board, _v0) {
 		var xIndex = _v0.a;
@@ -8647,10 +8329,14 @@ var $author$project$Board$updateScoreOnTileChange = F2(
 				rowsAndCols,
 				{
 					pieces: A3(
-						$elm$core$Dict$update,
-						id,
-						$elm$core$Maybe$map(
-							$author$project$Board$calculatePieceScore(board)),
+						$elm_community$list_extra$List$Extra$updateIf,
+						A2(
+							$elm$core$Basics$composeL,
+							$elm$core$Basics$eq(id),
+							function ($) {
+								return $.id;
+							}),
+						$author$project$Board$calculatePieceScore(board),
 						board.pieces)
 				});
 		};
@@ -8742,21 +8428,84 @@ var $author$project$Board$insertTile = F2(
 var $author$project$Board$insertDrag = F2(
 	function (board, drag) {
 		switch (drag.$) {
-			case 'DragPieceFromHand':
+			case 'DragPiece':
 				var piece = drag.a;
 				return A2($author$project$Board$insertPiece, piece, board);
-			case 'DragPieceFromBoard':
-				var piece = drag.a;
-				return A2($author$project$Board$insertPiece, piece, board);
-			case 'DragTileFromHand':
-				var tile = drag.a;
-				var id = drag.b;
-				return A2($author$project$Board$insertTile, tile, board);
-			case 'DragTileFromBoard':
+			case 'DragTile':
 				var tile = drag.a;
 				return A2($author$project$Board$insertTile, tile, board);
 			default:
 				return $elm$core$Result$Ok(board);
+		}
+	});
+var $author$project$Items$getDragId = function (drag) {
+	switch (drag.$) {
+		case 'DragPiece':
+			var piece = drag.a;
+			return piece.id;
+		case 'DragTile':
+			var tile = drag.a;
+			return tile.id;
+		case 'DragEssence':
+			var essence = drag.a;
+			return essence.id;
+		default:
+			return -1;
+	}
+};
+var $author$project$Main$removeDragFromHand = F2(
+	function (drag, model) {
+		switch (drag.$) {
+			case 'DragTile':
+				var tile = drag.a;
+				return _Utils_update(
+					model,
+					{
+						tiles: A2(
+							$elm$core$List$filter,
+							A2(
+								$elm$core$Basics$composeL,
+								$elm$core$Basics$neq(
+									$author$project$Items$getDragId(drag)),
+								function ($) {
+									return $.id;
+								}),
+							model.tiles)
+					});
+			case 'DragPiece':
+				var piece = drag.a;
+				return _Utils_update(
+					model,
+					{
+						pieces: A2(
+							$elm$core$List$filter,
+							A2(
+								$elm$core$Basics$composeL,
+								$elm$core$Basics$neq(
+									$author$project$Items$getDragId(drag)),
+								function ($) {
+									return $.id;
+								}),
+							model.pieces)
+					});
+			case 'DragEssence':
+				var essence = drag.a;
+				return _Utils_update(
+					model,
+					{
+						essences: A2(
+							$elm$core$List$filter,
+							A2(
+								$elm$core$Basics$composeL,
+								$elm$core$Basics$neq(
+									$author$project$Items$getDragId(drag)),
+								function ($) {
+									return $.id;
+								}),
+							model.essences)
+					});
+			default:
+				return model;
 		}
 	});
 var $author$project$Board$NoPieceOnBoardWithId = function (a) {
@@ -8782,11 +8531,27 @@ var $author$project$Board$checkIfPieceEmpty = F2(
 	});
 var $author$project$Board$removePiece = F2(
 	function (board, id) {
-		var _v0 = A2($elm$core$Dict$get, id, board.pieces);
+		var _v0 = A2(
+			$elm_community$list_extra$List$Extra$find,
+			A2(
+				$elm$core$Basics$composeL,
+				$elm$core$Basics$eq(id),
+				function ($) {
+					return $.id;
+				}),
+			board.pieces);
 		if (_v0.$ === 'Just') {
 			var piece = _v0.a;
 			if (A2($author$project$Board$checkIfPieceEmpty, piece, board)) {
-				var updatedPieces = A2($elm$core$Dict$remove, id, board.pieces);
+				var updatedPieces = A2(
+					$elm$core$List$filter,
+					A2(
+						$elm$core$Basics$composeL,
+						$elm$core$Basics$neq(id),
+						function ($) {
+							return $.id;
+						}),
+					board.pieces);
 				return $elm$core$Result$Ok(
 					_Utils_Tuple2(
 						A3(
@@ -8833,43 +8598,7 @@ var $author$project$Board$removeTile = F2(
 			return board;
 		}
 	});
-var $author$project$Board$mapDragPiece = F2(
-	function (f, drag) {
-		switch (drag.$) {
-			case 'DragPieceFromHand':
-				var piece = drag.a;
-				var id = drag.b;
-				return A2(
-					$author$project$Board$DragPieceFromHand,
-					f(piece),
-					id);
-			case 'DragPieceFromBoard':
-				var piece = drag.a;
-				return $author$project$Board$DragPieceFromBoard(
-					f(piece));
-			default:
-				return drag;
-		}
-	});
-var $author$project$Board$mapDragTile = F2(
-	function (f, drag) {
-		switch (drag.$) {
-			case 'DragTileFromHand':
-				var tile = drag.a;
-				var id = drag.b;
-				return A2(
-					$author$project$Board$DragTileFromHand,
-					f(tile),
-					id);
-			case 'DragTileFromBoard':
-				var tile = drag.a;
-				return $author$project$Board$DragTileFromBoard(
-					f(tile));
-			default:
-				return drag;
-		}
-	});
-var $author$project$Board$mapTranslate = F2(
+var $author$project$Items$mapTranslate = F2(
 	function (f, trans) {
 		return _Utils_update(
 			trans,
@@ -8877,8 +8606,7 @@ var $author$project$Board$mapTranslate = F2(
 				translate: f(trans.translate)
 			});
 	});
-var $elm$core$Basics$modBy = _Basics_modBy;
-var $author$project$Board$newShape = F2(
+var $author$project$Items$newShape = F2(
 	function (shape, piece) {
 		var _v0 = piece.drawPosition;
 		if (_v0.$ === 'Just') {
@@ -8891,7 +8619,7 @@ var $author$project$Board$newShape = F2(
 					$elm$core$Tuple$mapBoth,
 					$elm$core$Basics$add(posx),
 					$elm$core$Basics$add(posy)),
-				$author$project$Board$shapeToIndexes(shape));
+				$author$project$Items$shapeToIndexes(shape));
 			return _Utils_update(
 				piece,
 				{positions: positions, shape: shape});
@@ -8901,152 +8629,44 @@ var $author$project$Board$newShape = F2(
 				{shape: shape});
 		}
 	});
-var $author$project$Board$shapeMap = F2(
+var $author$project$Items$shapeMap = F2(
 	function (f, shape) {
 		switch (shape.$) {
 			case 'Twoi':
 				var indexes = shape.a;
-				return $author$project$Board$Twoi(
+				return $author$project$Items$Twoi(
 					f(indexes));
 			case 'Threel':
 				var indexes = shape.a;
-				return $author$project$Board$Threel(
+				return $author$project$Items$Threel(
 					f(indexes));
 			case 'Threei':
 				var indexes = shape.a;
-				return $author$project$Board$Threei(
+				return $author$project$Items$Threei(
 					f(indexes));
 			case 'Fouro':
 				var indexes = shape.a;
-				return $author$project$Board$Fouro(
+				return $author$project$Items$Fouro(
 					f(indexes));
 			case 'Fourt':
 				var indexes = shape.a;
-				return $author$project$Board$Fourt(
+				return $author$project$Items$Fourt(
 					f(indexes));
 			case 'Fours':
 				var indexes = shape.a;
-				return $author$project$Board$Fours(
+				return $author$project$Items$Fours(
 					f(indexes));
 			case 'Fourz':
 				var indexes = shape.a;
-				return $author$project$Board$Fourz(
+				return $author$project$Items$Fourz(
 					f(indexes));
 			default:
 				var indexes = shape.a;
-				return $author$project$Board$Fourl(
+				return $author$project$Items$Fourl(
 					f(indexes));
 		}
 	});
-var $author$project$Board$rotatePieceLeft = function (piece) {
-	var transform = piece.borderTransform;
-	var rotate = function (_v1) {
-		var xIndex = _v1.a;
-		var yIndex = _v1.b;
-		return _Utils_Tuple2(yIndex, (-1) * xIndex);
-	};
-	var newTransform = A2(
-		$author$project$Board$mapTranslate,
-		function (_v0) {
-			var transx = _v0.a;
-			var transy = _v0.b;
-			return _Utils_Tuple2(transy, (-1) * transx);
-		},
-		_Utils_update(
-			transform,
-			{
-				rotate: A2($elm$core$Basics$modBy, 360, transform.rotate - 90)
-			}));
-	return A2(
-		$author$project$Board$newShape,
-		A2(
-			$author$project$Board$shapeMap,
-			$elm$core$List$map(rotate),
-			piece.shape),
-		_Utils_update(
-			piece,
-			{borderTransform: newTransform}));
-};
-var $author$project$Board$rotatePropertyLeft = function (property) {
-	var rotate = function (_v0) {
-		var xIndex = _v0.a;
-		var yIndex = _v0.b;
-		return _Utils_Tuple2(yIndex, (-1) * xIndex);
-	};
-	return _Utils_update(
-		property,
-		{
-			region: A2($elm$core$List$map, rotate, property.region)
-		});
-};
-var $author$project$Board$rotateTileLeft = function (tile) {
-	return _Utils_update(
-		tile,
-		{
-			properties: A2($elm$core$List$map, $author$project$Board$rotatePropertyLeft, tile.properties)
-		});
-};
-var $author$project$Board$rotateDragLeft = function (drag) {
-	return A2(
-		$author$project$Board$mapDragPiece,
-		$author$project$Board$rotatePieceLeft,
-		A2($author$project$Board$mapDragTile, $author$project$Board$rotateTileLeft, drag));
-};
-var $author$project$Board$rotatePieceRight = function (piece) {
-	var transform = piece.borderTransform;
-	var rotate = function (_v1) {
-		var xIndex = _v1.a;
-		var yIndex = _v1.b;
-		return _Utils_Tuple2((-1) * yIndex, xIndex);
-	};
-	var newTransform = A2(
-		$author$project$Board$mapTranslate,
-		function (_v0) {
-			var transx = _v0.a;
-			var transy = _v0.b;
-			return _Utils_Tuple2((-1) * transy, transx);
-		},
-		_Utils_update(
-			transform,
-			{
-				rotate: A2($elm$core$Basics$modBy, 360, transform.rotate + 90)
-			}));
-	return A2(
-		$author$project$Board$newShape,
-		A2(
-			$author$project$Board$shapeMap,
-			$elm$core$List$map(rotate),
-			piece.shape),
-		_Utils_update(
-			piece,
-			{borderTransform: newTransform}));
-};
-var $author$project$Board$rotatePropertyRight = function (property) {
-	var rotate = function (_v0) {
-		var xIndex = _v0.a;
-		var yIndex = _v0.b;
-		return _Utils_Tuple2((-1) * yIndex, xIndex);
-	};
-	return _Utils_update(
-		property,
-		{
-			region: A2($elm$core$List$map, rotate, property.region)
-		});
-};
-var $author$project$Board$rotateTileRight = function (tile) {
-	return _Utils_update(
-		tile,
-		{
-			properties: A2($elm$core$List$map, $author$project$Board$rotatePropertyRight, tile.properties)
-		});
-};
-var $author$project$Board$rotateDragRight = function (drag) {
-	return A2(
-		$author$project$Board$mapDragPiece,
-		$author$project$Board$rotatePieceRight,
-		A2($author$project$Board$mapDragTile, $author$project$Board$rotateTileRight, drag));
-};
-var $author$project$Board$translatePiece = F2(
+var $author$project$Items$translatePiece = F2(
 	function (_v0, piece) {
 		var indx = _v0.a;
 		var indy = _v0.b;
@@ -9059,7 +8679,7 @@ var $author$project$Board$translatePiece = F2(
 			var transx = _v3.a;
 			var transy = _v3.b;
 			var newTransform = A2(
-				$author$project$Board$mapTranslate,
+				$author$project$Items$mapTranslate,
 				function (_v4) {
 					var trx = _v4.a;
 					var _try = _v4.b;
@@ -9067,9 +8687,9 @@ var $author$project$Board$translatePiece = F2(
 				},
 				piece.borderTransform);
 			return A2(
-				$author$project$Board$newShape,
+				$author$project$Items$newShape,
 				A2(
-					$author$project$Board$shapeMap,
+					$author$project$Items$shapeMap,
 					$elm$core$List$map(
 						A2(
 							$elm$core$Tuple$mapBoth,
@@ -9083,36 +8703,31 @@ var $author$project$Board$translatePiece = F2(
 			return piece;
 		}
 	});
-var $author$project$Crafting$update = F2(
-	function (msg, state) {
-		switch (msg.$) {
-			case 'Craft':
-				return state;
-			case 'ScrollSelected':
-				var scroll = msg.a;
-				return _Utils_eq(
-					$elm$core$Maybe$Just(scroll),
-					state.selectedScroll) ? _Utils_update(
-					state,
-					{selectedScroll: $elm$core$Maybe$Nothing}) : _Utils_update(
-					state,
-					{
-						selectedScroll: $elm$core$Maybe$Just(scroll)
-					});
-			default:
-				var orb = msg.a;
-				return A2($elm$core$List$member, orb, state.selectedOrbs) ? _Utils_update(
-					state,
-					{
-						selectedOrbs: A2($elm_community$list_extra$List$Extra$remove, orb, state.selectedOrbs)
-					}) : _Utils_update(
-					state,
-					{
-						selectedOrbs: A2(
-							$elm$core$List$take,
-							2,
-							A2($elm$core$List$cons, orb, state.selectedOrbs))
-					});
+var $author$project$Board$highlightPiece = F2(
+	function (board, piece) {
+		var highlightedTiles = A3(
+			$elm$core$List$foldr,
+			F2(
+				function (index, brd) {
+					return A3(
+						$author$project$Board$update,
+						$author$project$Board$setHighlight(true),
+						brd,
+						index);
+				}),
+			board,
+			piece.positions);
+		return _Utils_update(
+			highlightedTiles,
+			{highlight: piece.positions});
+	});
+var $author$project$Board$highlightBoard = F2(
+	function (board, drag) {
+		if (drag.$ === 'DragPiece') {
+			var piece = drag.a;
+			return A2($author$project$Board$highlightPiece, board, piece);
+		} else {
+			return board;
 		}
 	});
 var $author$project$Main$updateDrag = F2(
@@ -9127,28 +8742,14 @@ var $author$project$Main$updateDrag = F2(
 var $author$project$Main$updateHover = function (model) {
 	var _v0 = model.dragedItem;
 	switch (_v0.$) {
-		case 'DragPieceFromHand':
+		case 'DragPiece':
 			var piece = _v0.a;
 			return _Utils_update(
 				model,
 				{
 					hoveredPiece: $elm$core$Maybe$Just(piece)
 				});
-		case 'DragPieceFromBoard':
-			var piece = _v0.a;
-			return _Utils_update(
-				model,
-				{
-					hoveredPiece: $elm$core$Maybe$Just(piece)
-				});
-		case 'DragTileFromHand':
-			var tile = _v0.a;
-			return _Utils_update(
-				model,
-				{
-					hoveredTile: $elm$core$Maybe$Just(tile)
-				});
-		case 'DragTileFromBoard':
+		case 'DragTile':
 			var tile = _v0.a;
 			return _Utils_update(
 				model,
@@ -9159,150 +8760,639 @@ var $author$project$Main$updateHover = function (model) {
 			return model;
 	}
 };
-var $author$project$Main$update = F2(
+var $author$project$Main$handleDragMsg = F2(
+	function (dragMsg, model) {
+		switch (dragMsg.$) {
+			case 'DragFromHandStart':
+				var drag = dragMsg.a;
+				return _Utils_Tuple2(
+					A2(
+						$author$project$Main$removeDragFromHand,
+						drag,
+						_Utils_update(
+							model,
+							{dragedItem: drag})),
+					$elm$core$Platform$Cmd$none);
+			case 'DragFromBoardStart':
+				var index = dragMsg.a;
+				var _v1 = A2($author$project$Board$get, index, model.board);
+				_v1$2:
+				while (true) {
+					if (_v1.$ === 'Just') {
+						switch (_v1.a.$) {
+							case 'Empty':
+								var _v2 = _v1.a;
+								var pieceId = _v2.a;
+								var _v3 = A2($author$project$Board$removePiece, model.board, pieceId);
+								if (_v3.$ === 'Ok') {
+									var _v4 = _v3.a;
+									var board = _v4.a;
+									var piece = _v4.b;
+									return _Utils_Tuple2(
+										A2(
+											$author$project$Main$updateDrag,
+											$author$project$Items$DragPiece(
+												A2(
+													$author$project$Items$newDrawPosition,
+													$elm$core$Maybe$Just(index),
+													A2($author$project$Items$translatePiece, index, piece))),
+											_Utils_update(
+												model,
+												{board: board, hoveredPiece: $elm$core$Maybe$Nothing})),
+										$elm$core$Platform$Cmd$none);
+								} else {
+									var err = _v3.a;
+									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+								}
+							case 'Filled':
+								var _v5 = _v1.a;
+								var tile = _v5.b;
+								return _Utils_Tuple2(
+									_Utils_update(
+										model,
+										{
+											board: A2($author$project$Board$removeTile, index, model.board),
+											dragedItem: $author$project$Items$DragTile(tile),
+											hoveredTile: $elm$core$Maybe$Nothing
+										}),
+									$elm$core$Platform$Cmd$none);
+							default:
+								break _v1$2;
+						}
+					} else {
+						break _v1$2;
+					}
+				}
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			case 'DragFromBenchStart':
+				var drag = dragMsg.a;
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			case 'DragOverField':
+				var index = dragMsg.a;
+				var indexedDrag = A2(
+					$author$project$Items$indexDrag,
+					$elm$core$Maybe$Just(index),
+					model.dragedItem);
+				var _v6 = A2($author$project$Board$get, index, model.board);
+				_v6$2:
+				while (true) {
+					if (_v6.$ === 'Just') {
+						switch (_v6.a.$) {
+							case 'Filled':
+								var _v7 = _v6.a;
+								var pieceId = _v7.a;
+								var tile = _v7.b;
+								return _Utils_Tuple2(
+									A2(
+										$author$project$Main$updateDrag,
+										indexedDrag,
+										_Utils_update(
+											model,
+											{
+												hoveredPiece: A2(
+													$elm_community$list_extra$List$Extra$find,
+													A2(
+														$elm$core$Basics$composeL,
+														$elm$core$Basics$eq(pieceId),
+														function ($) {
+															return $.id;
+														}),
+													model.board.pieces),
+												hoveredTile: $elm$core$Maybe$Just(tile)
+											})),
+									$elm$core$Platform$Cmd$none);
+							case 'Empty':
+								var _v8 = _v6.a;
+								var pieceId = _v8.a;
+								return _Utils_Tuple2(
+									A2(
+										$author$project$Main$updateDrag,
+										indexedDrag,
+										_Utils_update(
+											model,
+											{
+												hoveredPiece: A2(
+													$elm_community$list_extra$List$Extra$find,
+													A2(
+														$elm$core$Basics$composeL,
+														$elm$core$Basics$eq(pieceId),
+														function ($) {
+															return $.id;
+														}),
+													model.board.pieces)
+											})),
+									$elm$core$Platform$Cmd$none);
+							default:
+								break _v6$2;
+						}
+					} else {
+						break _v6$2;
+					}
+				}
+				return _Utils_Tuple2(
+					A2($author$project$Main$updateDrag, indexedDrag, model),
+					$elm$core$Platform$Cmd$none);
+			case 'DragOverBench':
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			case 'DragLeave':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							board: $author$project$Board$removeHighlight(model.board),
+							dragedItem: A2($author$project$Items$indexDrag, $elm$core$Maybe$Nothing, model.dragedItem),
+							hoveredPiece: $elm$core$Maybe$Nothing,
+							hoveredTile: $elm$core$Maybe$Nothing
+						}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				var _v9 = A2($author$project$Board$insertDrag, model.board, model.dragedItem);
+				if (_v9.$ === 'Ok') {
+					var board = _v9.a;
+					return A2(
+						$author$project$Main$dragEnd,
+						true,
+						$author$project$Main$updateHover(
+							_Utils_update(
+								model,
+								{board: board})));
+				} else {
+					return A2($author$project$Main$dragEnd, false, model);
+				}
+		}
+	});
+var $elm$core$Platform$Cmd$map = _Platform_map;
+var $author$project$Items$mapDragPiece = F2(
+	function (f, drag) {
+		if (drag.$ === 'DragPiece') {
+			var piece = drag.a;
+			return $author$project$Items$DragPiece(
+				f(piece));
+		} else {
+			return drag;
+		}
+	});
+var $author$project$Items$mapDragTile = F2(
+	function (f, drag) {
+		if (drag.$ === 'DragTile') {
+			var tile = drag.a;
+			return $author$project$Items$DragTile(
+				f(tile));
+		} else {
+			return drag;
+		}
+	});
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $author$project$Items$rotatePieceLeft = function (piece) {
+	var transform = piece.borderTransform;
+	var rotate = function (_v1) {
+		var xIndex = _v1.a;
+		var yIndex = _v1.b;
+		return _Utils_Tuple2(yIndex, (-1) * xIndex);
+	};
+	var newTransform = A2(
+		$author$project$Items$mapTranslate,
+		function (_v0) {
+			var transx = _v0.a;
+			var transy = _v0.b;
+			return _Utils_Tuple2(transy, (-1) * transx);
+		},
+		_Utils_update(
+			transform,
+			{
+				rotate: A2($elm$core$Basics$modBy, 360, transform.rotate - 90)
+			}));
+	return A2(
+		$author$project$Items$newShape,
+		A2(
+			$author$project$Items$shapeMap,
+			$elm$core$List$map(rotate),
+			piece.shape),
+		_Utils_update(
+			piece,
+			{borderTransform: newTransform}));
+};
+var $author$project$Items$rotatePropertyLeft = function (property) {
+	var rotate = function (_v0) {
+		var xIndex = _v0.a;
+		var yIndex = _v0.b;
+		return _Utils_Tuple2(yIndex, (-1) * xIndex);
+	};
+	return _Utils_update(
+		property,
+		{
+			region: A2($elm$core$List$map, rotate, property.region)
+		});
+};
+var $author$project$Items$rotateTileLeft = function (tile) {
+	return _Utils_update(
+		tile,
+		{
+			properties: A2($elm$core$List$map, $author$project$Items$rotatePropertyLeft, tile.properties)
+		});
+};
+var $author$project$Items$rotateDragLeft = function (drag) {
+	return A2(
+		$author$project$Items$mapDragPiece,
+		$author$project$Items$rotatePieceLeft,
+		A2($author$project$Items$mapDragTile, $author$project$Items$rotateTileLeft, drag));
+};
+var $author$project$Items$rotatePieceRight = function (piece) {
+	var transform = piece.borderTransform;
+	var rotate = function (_v1) {
+		var xIndex = _v1.a;
+		var yIndex = _v1.b;
+		return _Utils_Tuple2((-1) * yIndex, xIndex);
+	};
+	var newTransform = A2(
+		$author$project$Items$mapTranslate,
+		function (_v0) {
+			var transx = _v0.a;
+			var transy = _v0.b;
+			return _Utils_Tuple2((-1) * transy, transx);
+		},
+		_Utils_update(
+			transform,
+			{
+				rotate: A2($elm$core$Basics$modBy, 360, transform.rotate + 90)
+			}));
+	return A2(
+		$author$project$Items$newShape,
+		A2(
+			$author$project$Items$shapeMap,
+			$elm$core$List$map(rotate),
+			piece.shape),
+		_Utils_update(
+			piece,
+			{borderTransform: newTransform}));
+};
+var $author$project$Items$rotatePropertyRight = function (property) {
+	var rotate = function (_v0) {
+		var xIndex = _v0.a;
+		var yIndex = _v0.b;
+		return _Utils_Tuple2((-1) * yIndex, xIndex);
+	};
+	return _Utils_update(
+		property,
+		{
+			region: A2($elm$core$List$map, rotate, property.region)
+		});
+};
+var $author$project$Items$rotateTileRight = function (tile) {
+	return _Utils_update(
+		tile,
+		{
+			properties: A2($elm$core$List$map, $author$project$Items$rotatePropertyRight, tile.properties)
+		});
+};
+var $author$project$Items$rotateDragRight = function (drag) {
+	return A2(
+		$author$project$Items$mapDragPiece,
+		$author$project$Items$rotatePieceRight,
+		A2($author$project$Items$mapDragTile, $author$project$Items$rotateTileRight, drag));
+};
+var $author$project$Crafting$TileGenerated = function (a) {
+	return {$: 'TileGenerated', a: a};
+};
+var $author$project$ProcGen$addProperty = F3(
+	function (level, blockedColors, tile) {
+		return A2(
+			$elm$random$Random$map,
+			function (prop) {
+				return _Utils_update(
+					tile,
+					{
+						properties: A2($elm$core$List$cons, prop, tile.properties)
+					});
+			},
+			A2($author$project$ProcGen$generateProperty, level, blockedColors));
+	});
+var $author$project$Crafting$basicReqMet = F2(
+	function (scroll, state) {
+		var hasScroll = A2(
+			$elm$core$List$member,
+			scroll,
+			A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$first,
+				A2(
+					$elm$core$List$filter,
+					A2(
+						$elm$core$Basics$composeL,
+						$elm$core$Basics$lt(0),
+						$elm$core$Tuple$second),
+					state.scrolls)));
+		var hasOrbs = A2(
+			$elm$core$List$all,
+			function (orb) {
+				return A2(
+					$elm$core$List$member,
+					orb,
+					A2(
+						$elm$core$List$map,
+						$elm$core$Tuple$first,
+						A2(
+							$elm$core$List$filter,
+							A2(
+								$elm$core$Basics$composeL,
+								$elm$core$Basics$lt(0),
+								$elm$core$Tuple$second),
+							state.orbs)));
+			},
+			state.selectedOrbs);
+		var _v0 = state.tile;
+		if (_v0.$ === 'Nothing') {
+			return $elm$core$Result$Err(_Utils_Tuple0);
+		} else {
+			var tile = _v0.a;
+			return (hasScroll && hasOrbs) ? $elm$core$Result$Ok(tile) : $elm$core$Result$Err(_Utils_Tuple0);
+		}
+	});
+var $author$project$Crafting$removeDragFromBench = F2(
+	function (state, drag) {
+		switch (drag.$) {
+			case 'DragTile':
+				return _Utils_update(
+					state,
+					{tile: $elm$core$Maybe$Nothing});
+			case 'DragEssence':
+				return _Utils_update(
+					state,
+					{selectedEssence: $elm$core$Maybe$Nothing});
+			default:
+				return state;
+		}
+	});
+var $author$project$Crafting$removeMats = F2(
+	function (scroll, state) {
+		return _Utils_update(
+			state,
+			{
+				orbs: A3(
+					$elm_community$list_extra$List$Extra$updateIf,
+					A2(
+						$elm$core$Basics$composeL,
+						function (orb) {
+							return A2($elm$core$List$member, orb, state.selectedOrbs);
+						},
+						$elm$core$Tuple$first),
+					$elm$core$Tuple$mapSecond(
+						$elm$core$Basics$add(-1)),
+					state.orbs),
+				scrolls: A3(
+					$elm_community$list_extra$List$Extra$updateIf,
+					A2(
+						$elm$core$Basics$composeL,
+						$elm$core$Basics$eq(scroll),
+						$elm$core$Tuple$first),
+					$elm$core$Tuple$mapSecond(
+						$elm$core$Basics$add(-1)),
+					state.scrolls)
+			});
+	});
+var $author$project$ProcGen$rerollProperties = F3(
+	function (level, blockedColors, tile) {
+		return A2(
+			$elm$random$Random$map,
+			function (props) {
+				return _Utils_update(
+					tile,
+					{properties: props});
+			},
+			A2($author$project$ProcGen$generateProperties, level, blockedColors));
+	});
+var $author$project$Crafting$updateModel = F2(
+	function (model, state) {
+		return _Utils_update(
+			model,
+			{craftingTable: state});
+	});
+var $author$project$Crafting$update = F2(
 	function (msg, model) {
+		var craftingTable = model.craftingTable;
 		switch (msg.$) {
-			case 'DragMsg':
+			case 'ApplyScroll':
+				var _v1 = model.craftingTable.selectedScroll;
+				_v1$3:
+				while (true) {
+					if (_v1.$ === 'Just') {
+						switch (_v1.a.$) {
+							case 'Modification':
+								var _v2 = _v1.a;
+								var _v3 = A2($author$project$Crafting$basicReqMet, $author$project$Crafting$Modification, model.craftingTable);
+								if (_v3.$ === 'Ok') {
+									var tile = _v3.a;
+									return _Utils_Tuple2(
+										A2(
+											$author$project$Crafting$updateModel,
+											model,
+											A2($author$project$Crafting$removeMats, $author$project$Crafting$Modification, model.craftingTable)),
+										A2(
+											$elm$random$Random$generate,
+											$author$project$Crafting$TileGenerated,
+											A3($author$project$ProcGen$generateBase, model.procGenState.level, model.craftingTable.selectedOrbs, tile)));
+								} else {
+									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+								}
+							case 'Augmentation':
+								var _v4 = _v1.a;
+								var _v5 = A2($author$project$Crafting$basicReqMet, $author$project$Crafting$Augmentation, model.craftingTable);
+								if (_v5.$ === 'Ok') {
+									var tile = _v5.a;
+									return ($elm$core$List$length(tile.properties) <= 1) ? _Utils_Tuple2(
+										A2(
+											$author$project$Crafting$updateModel,
+											model,
+											A2($author$project$Crafting$removeMats, $author$project$Crafting$Augmentation, model.craftingTable)),
+										A2(
+											$elm$random$Random$generate,
+											$author$project$Crafting$TileGenerated,
+											A3($author$project$ProcGen$addProperty, model.procGenState.level, model.craftingTable.selectedOrbs, tile))) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+								} else {
+									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+								}
+							case 'Alteration':
+								var _v6 = _v1.a;
+								var _v7 = A2($author$project$Crafting$basicReqMet, $author$project$Crafting$Alteration, model.craftingTable);
+								if (_v7.$ === 'Ok') {
+									var tile = _v7.a;
+									return _Utils_Tuple2(
+										A2(
+											$author$project$Crafting$updateModel,
+											model,
+											A2($author$project$Crafting$removeMats, $author$project$Crafting$Alteration, model.craftingTable)),
+										A2(
+											$elm$random$Random$generate,
+											$author$project$Crafting$TileGenerated,
+											A3($author$project$ProcGen$rerollProperties, model.procGenState.level, model.craftingTable.selectedOrbs, tile)));
+								} else {
+									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+								}
+							default:
+								break _v1$3;
+						}
+					} else {
+						break _v1$3;
+					}
+				}
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			case 'TileGenerated':
+				var tile = msg.a;
+				return _Utils_Tuple2(
+					A2(
+						$author$project$Crafting$updateModel,
+						model,
+						_Utils_update(
+							craftingTable,
+							{
+								tile: $elm$core$Maybe$Just(tile)
+							})),
+					$elm$core$Platform$Cmd$none);
+			case 'ScrollSelected':
+				var scroll = msg.a;
+				return _Utils_eq(
+					$elm$core$Maybe$Just(scroll),
+					model.craftingTable.selectedScroll) ? _Utils_Tuple2(
+					A2(
+						$author$project$Crafting$updateModel,
+						model,
+						_Utils_update(
+							craftingTable,
+							{selectedScroll: $elm$core$Maybe$Nothing})),
+					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+					A2(
+						$author$project$Crafting$updateModel,
+						model,
+						_Utils_update(
+							craftingTable,
+							{
+								selectedScroll: $elm$core$Maybe$Just(scroll)
+							})),
+					$elm$core$Platform$Cmd$none);
+			case 'OrbSelected':
+				var orb = msg.a;
+				return A2($elm$core$List$member, orb, model.craftingTable.selectedOrbs) ? _Utils_Tuple2(
+					A2(
+						$author$project$Crafting$updateModel,
+						model,
+						_Utils_update(
+							craftingTable,
+							{
+								selectedOrbs: A2($elm_community$list_extra$List$Extra$remove, orb, model.craftingTable.selectedOrbs)
+							})),
+					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+					A2(
+						$author$project$Crafting$updateModel,
+						model,
+						_Utils_update(
+							craftingTable,
+							{
+								selectedOrbs: A2(
+									$elm$core$List$take,
+									2,
+									A2($elm$core$List$cons, orb, model.craftingTable.selectedOrbs))
+							})),
+					$elm$core$Platform$Cmd$none);
+			default:
 				var dragMsg = msg.a;
 				switch (dragMsg.$) {
-					case 'DragFromHandStart':
+					case 'DragFromBenchStart':
 						var drag = dragMsg.a;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{dragedItem: drag}),
+								{
+									craftingTable: A2($author$project$Crafting$removeDragFromBench, craftingTable, drag),
+									dragedItem: drag
+								}),
 							$elm$core$Platform$Cmd$none);
-					case 'DragFromBoardStart':
-						var index = dragMsg.a;
-						var _v2 = A2($author$project$Board$get, index, model.board);
-						_v2$2:
-						while (true) {
-							if (_v2.$ === 'Just') {
-								switch (_v2.a.$) {
-									case 'Empty':
-										var _v3 = _v2.a;
-										var pieceId = _v3.a;
-										var _v4 = A2($author$project$Board$removePiece, model.board, pieceId);
-										if (_v4.$ === 'Ok') {
-											var _v5 = _v4.a;
-											var board = _v5.a;
-											var piece = _v5.b;
-											return _Utils_Tuple2(
-												A2(
-													$author$project$Main$updateDrag,
-													$author$project$Board$DragPieceFromBoard(
-														A2(
-															$author$project$Board$newDrawPosition,
-															$elm$core$Maybe$Just(index),
-															A2($author$project$Board$translatePiece, index, piece))),
-													_Utils_update(
-														model,
-														{board: board, hoveredPiece: $elm$core$Maybe$Nothing})),
-												$elm$core$Platform$Cmd$none);
-										} else {
-											var err = _v4.a;
-											return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-										}
-									case 'Filled':
-										var _v6 = _v2.a;
-										var tile = _v6.b;
-										return _Utils_Tuple2(
-											_Utils_update(
-												model,
-												{
-													board: A2($author$project$Board$removeTile, index, model.board),
-													dragedItem: $author$project$Board$DragTileFromBoard(tile),
-													hoveredTile: $elm$core$Maybe$Nothing
-												}),
-											$elm$core$Platform$Cmd$none);
-									default:
-										break _v2$2;
-								}
-							} else {
-								break _v2$2;
-							}
-						}
-						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-					case 'DragOverField':
-						var index = dragMsg.a;
-						var indexedDrag = A2(
-							$author$project$Board$indexDrag,
-							$elm$core$Maybe$Just(index),
-							model.dragedItem);
-						var _v7 = A2($author$project$Board$get, index, model.board);
-						_v7$2:
-						while (true) {
-							if (_v7.$ === 'Just') {
-								switch (_v7.a.$) {
-									case 'Filled':
-										var _v8 = _v7.a;
-										var pieceId = _v8.a;
-										var tile = _v8.b;
-										return _Utils_Tuple2(
-											A2(
-												$author$project$Main$updateDrag,
-												indexedDrag,
-												_Utils_update(
-													model,
-													{
-														hoveredPiece: A2($elm$core$Dict$get, pieceId, model.board.pieces),
-														hoveredTile: $elm$core$Maybe$Just(tile)
-													})),
-											$elm$core$Platform$Cmd$none);
-									case 'Empty':
-										var _v9 = _v7.a;
-										var pieceId = _v9.a;
-										return _Utils_Tuple2(
-											A2(
-												$author$project$Main$updateDrag,
-												indexedDrag,
-												_Utils_update(
-													model,
-													{
-														hoveredPiece: A2($elm$core$Dict$get, pieceId, model.board.pieces)
-													})),
-											$elm$core$Platform$Cmd$none);
-									default:
-										break _v7$2;
-								}
-							} else {
-								break _v7$2;
-							}
-						}
+					case 'DragOverBench':
 						return _Utils_Tuple2(
-							A2($author$project$Main$updateDrag, indexedDrag, model),
+							_Utils_update(
+								model,
+								{craftingBenchHovered: true}),
 							$elm$core$Platform$Cmd$none);
 					case 'DragLeave':
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{
-									board: $author$project$Board$removeHighlight(model.board),
-									dragedItem: A2($author$project$Board$indexDrag, $elm$core$Maybe$Nothing, model.dragedItem),
-									hoveredPiece: $elm$core$Maybe$Nothing,
-									hoveredTile: $elm$core$Maybe$Nothing
-								}),
+								{craftingBenchHovered: false}),
 							$elm$core$Platform$Cmd$none);
-					default:
-						var _v10 = A2($author$project$Board$insertDrag, model.board, model.dragedItem);
-						if (_v10.$ === 'Ok') {
-							var board = _v10.a;
-							return A2(
-								$author$project$Main$dragEnd,
-								true,
-								$author$project$Main$updateHover(
+					case 'DragDrop':
+						var _v9 = model.dragedItem;
+						switch (_v9.$) {
+							case 'DragPiece':
+								var piece = _v9.a;
+								return _Utils_Tuple2(
 									_Utils_update(
 										model,
-										{board: board})));
-						} else {
-							return A2($author$project$Main$dragEnd, false, model);
+										{
+											pieces: A2($elm$core$List$cons, piece, model.pieces)
+										}),
+									$elm$core$Platform$Cmd$none);
+							case 'DragTile':
+								var tile = _v9.a;
+								if (_Utils_eq(craftingTable.tile, $elm$core$Maybe$Nothing)) {
+									var droppedTile = _Utils_update(
+										craftingTable,
+										{
+											tile: $elm$core$Maybe$Just(tile)
+										});
+									return _Utils_Tuple2(
+										_Utils_update(
+											model,
+											{craftingTable: droppedTile}),
+										$elm$core$Platform$Cmd$none);
+								} else {
+									return _Utils_Tuple2(
+										_Utils_update(
+											model,
+											{
+												tiles: A2($elm$core$List$cons, tile, model.tiles)
+											}),
+										$elm$core$Platform$Cmd$none);
+								}
+							case 'DragEssence':
+								var essence = _v9.a;
+								if (_Utils_eq(craftingTable.selectedEssence, $elm$core$Maybe$Nothing)) {
+									var droppedEssence = _Utils_update(
+										craftingTable,
+										{
+											selectedEssence: $elm$core$Maybe$Just(essence)
+										});
+									return _Utils_Tuple2(
+										_Utils_update(
+											model,
+											{craftingTable: droppedEssence}),
+										$elm$core$Platform$Cmd$none);
+								} else {
+									return _Utils_Tuple2(
+										_Utils_update(
+											model,
+											{
+												essences: A2($elm$core$List$cons, essence, model.essences)
+											}),
+										$elm$core$Platform$Cmd$none);
+								}
+							default:
+								return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 						}
+					default:
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
+		}
+	});
+var $author$project$Main$update = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'DragMsg':
+				var dragMsg = msg.a;
+				return A2($author$project$Main$handleDragMsg, dragMsg, model);
 			case 'KeyboardMsg':
 				var key = msg.a;
 				switch (key.$) {
 					case 'RotateRight':
-						var rotatedDrag = $author$project$Board$rotateDragRight(model.dragedItem);
+						var rotatedDrag = $author$project$Items$rotateDragRight(model.dragedItem);
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -9315,7 +9405,7 @@ var $author$project$Main$update = F2(
 								}),
 							$elm$core$Platform$Cmd$none);
 					case 'RotateLeft':
-						var rotatedDrag = $author$project$Board$rotateDragLeft(model.dragedItem);
+						var rotatedDrag = $author$project$Items$rotateDragLeft(model.dragedItem);
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -9364,35 +9454,33 @@ var $author$project$Main$update = F2(
 						model,
 						{board: board}),
 					$elm$core$Platform$Cmd$none);
-			case 'NewPieceDict':
-				var pieceDict = msg.a;
+			case 'NewPieceList':
+				var _v3 = msg.a;
+				var newState = _v3.a;
+				var pieceList = _v3.b;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{pieces: pieceDict}),
+						{pieces: pieceList, procGenState: newState}),
 					$elm$core$Platform$Cmd$none);
 			case 'NewTileList':
-				var tiles = msg.a;
+				var _v4 = msg.a;
+				var newState = _v4.a;
+				var tileList = _v4.b;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{
-							tiles: $elm$core$Dict$fromList(
-								A2($elm$core$List$indexedMap, $elm$core$Tuple$pair, tiles))
-						}),
+						{procGenState: newState, tiles: tileList}),
 					$elm$core$Platform$Cmd$none);
 			default:
 				var craftingMsg = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							craftingTable: A2($author$project$Crafting$update, craftingMsg, model.craftingTable)
-						}),
-					$elm$core$Platform$Cmd$none);
+				return A2(
+					$elm$core$Tuple$mapSecond,
+					$elm$core$Platform$Cmd$map($author$project$Main$CraftingMsg),
+					A2($author$project$Crafting$update, craftingMsg, model));
 		}
 	});
-var $author$project$Board$DragDrop = {$: 'DragDrop'};
+var $author$project$Items$DragDrop = {$: 'DragDrop'};
 var $author$project$Main$DragMsg = function (a) {
 	return {$: 'DragMsg', a: a};
 };
@@ -9410,7 +9498,7 @@ var $elm$core$List$concat = function (lists) {
 };
 var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
 var $elm$svg$Svg$circle = $elm$svg$Svg$trustedNode('circle');
-var $author$project$Board$colorToString = function (color) {
+var $author$project$Items$colorToString = function (color) {
 	switch (color.$) {
 		case 'Purple':
 			return '#5f0f4f';
@@ -9429,7 +9517,7 @@ var $elm$svg$Svg$Attributes$r = _VirtualDom_attribute('r');
 var $elm$svg$Svg$Attributes$style = _VirtualDom_attribute('style');
 var $elm$svg$Svg$svg = $elm$svg$Svg$trustedNode('svg');
 var $elm$svg$Svg$Attributes$viewBox = _VirtualDom_attribute('viewBox');
-var $author$project$Board$drawColorCircle = function (color) {
+var $author$project$Items$drawColorCircle = function (color) {
 	return A2(
 		$elm$svg$Svg$svg,
 		_List_fromArray(
@@ -9447,7 +9535,7 @@ var $author$project$Board$drawColorCircle = function (color) {
 						$elm$svg$Svg$Attributes$cy('15'),
 						$elm$svg$Svg$Attributes$r('14'),
 						$elm$svg$Svg$Attributes$fill(
-						$author$project$Board$colorToString(color))
+						$author$project$Items$colorToString(color))
 					]),
 				_List_Nil)
 			]));
@@ -9456,7 +9544,7 @@ var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $author$project$Board$drawReq = F2(
+var $author$project$Items$drawReq = F2(
 	function (_v0, _v1) {
 		var pointC = _v0.a;
 		var pointI = _v0.b;
@@ -9474,11 +9562,11 @@ var $author$project$Board$drawReq = F2(
 					[
 						$elm$html$Html$text(
 						$elm$core$String$fromInt(reqI) + ('/' + $elm$core$String$fromInt(pointI))),
-						$author$project$Board$drawColorCircle(pointC)
+						$author$project$Items$drawColorCircle(pointC)
 					]))
 			]);
 	});
-var $author$project$Board$drawPieceReq = function (piece) {
+var $author$project$Items$drawPieceReq = function (piece) {
 	return A2(
 		$elm$html$Html$div,
 		_List_Nil,
@@ -9488,10 +9576,10 @@ var $author$project$Board$drawPieceReq = function (piece) {
 				$elm$html$Html$div,
 				_List_Nil,
 				$elm$core$List$concat(
-					A3($elm$core$List$map2, $author$project$Board$drawReq, piece.score, piece.req)))
+					A3($elm$core$List$map2, $author$project$Items$drawReq, piece.score, piece.req)))
 			]));
 };
-var $author$project$Board$drawPieceTooltip = function (piece) {
+var $author$project$Items$drawPieceTooltip = function (piece) {
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -9502,7 +9590,7 @@ var $author$project$Board$drawPieceTooltip = function (piece) {
 			]),
 		_List_fromArray(
 			[
-				$author$project$Board$drawPieceReq(piece)
+				$author$project$Items$drawPieceReq(piece)
 			]));
 };
 var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
@@ -9510,7 +9598,7 @@ var $elm$svg$Svg$rect = $elm$svg$Svg$trustedNode('rect');
 var $elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
 var $elm$svg$Svg$Attributes$x = _VirtualDom_attribute('x');
 var $elm$svg$Svg$Attributes$y = _VirtualDom_attribute('y');
-var $author$project$Board$drawRegion = F2(
+var $author$project$Items$drawRegion = F2(
 	function (region, color) {
 		return A2(
 			$elm$svg$Svg$svg,
@@ -9561,7 +9649,7 @@ var $author$project$Board$drawRegion = F2(
 									$elm$svg$Svg$Attributes$width('10'),
 									$elm$svg$Svg$Attributes$height('10'),
 									$elm$svg$Svg$Attributes$fill(
-									$author$project$Board$colorToString(color))
+									$author$project$Items$colorToString(color))
 								]),
 							_List_Nil);
 					},
@@ -9571,7 +9659,7 @@ var $elm$svg$Svg$Attributes$d = _VirtualDom_attribute('d');
 var $elm$svg$Svg$path = $elm$svg$Svg$trustedNode('path');
 var $elm$svg$Svg$Attributes$stroke = _VirtualDom_attribute('stroke');
 var $elm$svg$Svg$Attributes$strokeWidth = _VirtualDom_attribute('stroke-width');
-var $author$project$Board$drawReqMet = function (isMet) {
+var $author$project$Items$drawReqMet = function (isMet) {
 	return A2(
 		$elm$svg$Svg$svg,
 		_List_fromArray(
@@ -9605,6 +9693,26 @@ var $author$project$Board$drawReqMet = function (isMet) {
 			]));
 };
 var $elm$core$String$fromFloat = _String_fromNumber;
+var $elm$html$Html$p = _VirtualDom_node('p');
+var $author$project$Items$drawProperty = F2(
+	function (showReqMet, pr) {
+		return A2(
+			$elm$html$Html$p,
+			_List_Nil,
+			_Utils_ap(
+				(!showReqMet) ? _List_Nil : _List_fromArray(
+					[
+						$author$project$Items$drawReqMet(pr.isMet)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						$elm$core$String$fromInt(pr.reqValue) + ' '),
+						A2($author$project$Items$drawRegion, pr.region, pr.reqColor),
+						$elm$html$Html$text(
+						' ' + ($elm$core$String$fromFloat(pr.prodBonus) + ('x + ' + $elm$core$String$fromFloat(pr.addBonus))))
+					])));
+	});
 var $elm$core$List$isEmpty = function (xs) {
 	if (!xs.b) {
 		return true;
@@ -9612,8 +9720,7 @@ var $elm$core$List$isEmpty = function (xs) {
 		return false;
 	}
 };
-var $elm$html$Html$p = _VirtualDom_node('p');
-var $author$project$Board$drawTileTooltip = function (tile) {
+var $author$project$Items$drawTileTooltip = function (tile) {
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -9635,21 +9742,9 @@ var $author$project$Board$drawTileTooltip = function (tile) {
 			$elm$core$List$map,
 			function (pr) {
 				return A2(
-					$elm$html$Html$p,
-					_List_Nil,
-					_Utils_ap(
-						_Utils_eq(tile.drawPosition, $elm$core$Maybe$Nothing) ? _List_Nil : _List_fromArray(
-							[
-								$author$project$Board$drawReqMet(pr.isMet)
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(
-								$elm$core$String$fromInt(pr.reqValue) + ' '),
-								A2($author$project$Board$drawRegion, pr.region, pr.reqColor),
-								$elm$html$Html$text(
-								' ' + ($elm$core$String$fromFloat(pr.prodBonus) + ('x + ' + $elm$core$String$fromFloat(pr.addBonus))))
-							])));
+					$author$project$Items$drawProperty,
+					!_Utils_eq(tile.drawPosition, $elm$core$Maybe$Nothing),
+					pr);
 			},
 			tile.properties));
 };
@@ -9674,11 +9769,14 @@ var $elm$core$List$singleton = function (value) {
 	return _List_fromArray(
 		[value]);
 };
-var $author$project$Main$CraftingMsg = function (a) {
-	return {$: 'CraftingMsg', a: a};
-};
-var $author$project$Board$DragFromHandStart = function (a) {
+var $author$project$Items$DragFromHandStart = function (a) {
 	return {$: 'DragFromHandStart', a: a};
+};
+var $author$project$Crafting$DragMsg = function (a) {
+	return {$: 'DragMsg', a: a};
+};
+var $author$project$Items$DragEssence = function (a) {
+	return {$: 'DragEssence', a: a};
 };
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -9689,8 +9787,78 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			$elm$json$Json$Encode$string(string));
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$svg$Svg$Attributes$class = _VirtualDom_attribute('class');
+var $elm$svg$Svg$Attributes$dominantBaseline = _VirtualDom_attribute('dominant-baseline');
+var $elm$html$Html$Events$onMouseDown = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'mousedown',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $elm$svg$Svg$text = $elm$virtual_dom$VirtualDom$text;
+var $elm$svg$Svg$Attributes$textAnchor = _VirtualDom_attribute('text-anchor');
+var $elm$svg$Svg$text_ = $elm$svg$Svg$trustedNode('text');
+var $author$project$Items$drawEssence = F2(
+	function (dragMsg, essence) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('tile'),
+					$elm$html$Html$Events$onMouseDown(
+					dragMsg(
+						$author$project$Items$DragEssence(essence)))
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$svg$Svg$svg,
+					_List_fromArray(
+						[
+							$elm$svg$Svg$Attributes$viewBox('0 0 50 50'),
+							$elm$svg$Svg$Attributes$x('0'),
+							$elm$svg$Svg$Attributes$y('0'),
+							$elm$svg$Svg$Attributes$width('50'),
+							$elm$svg$Svg$Attributes$height('50')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$svg$Svg$text_,
+							_List_fromArray(
+								[
+									$elm$svg$Svg$Attributes$fill('black'),
+									$elm$svg$Svg$Attributes$x('25'),
+									$elm$svg$Svg$Attributes$y('25'),
+									$elm$svg$Svg$Attributes$textAnchor('middle'),
+									$elm$svg$Svg$Attributes$dominantBaseline('central'),
+									$elm$svg$Svg$Attributes$style('font-size: 1.5em'),
+									$elm$svg$Svg$Attributes$class('noselect'),
+									$elm$svg$Svg$Attributes$fill(
+									$author$project$Items$colorToString(essence.property.reqColor))
+								]),
+							_List_fromArray(
+								[
+									$elm$svg$Svg$text('E')
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'background-color', 'yellow'),
+							A2($elm$html$Html$Attributes$style, 'font-size', '1.4rem'),
+							A2($elm$html$Html$Attributes$style, 'width', 'max-content'),
+							$elm$html$Html$Attributes$class('tooltip')
+						]),
+					_List_fromArray(
+						[
+							A2($author$project$Items$drawProperty, false, essence.property)
+						]))
+				]));
+	});
 var $elm$svg$Svg$Attributes$transform = _VirtualDom_attribute('transform');
-var $author$project$Board$drawPieceBorder = function (piece) {
+var $author$project$Items$drawPieceBorder = function (piece) {
 	var rotate = piece.borderTransform.rotate;
 	var _v0 = piece.borderTransform.translate;
 	var transx = _v0.a;
@@ -9743,7 +9911,7 @@ var $author$project$Board$drawPieceBorder = function (piece) {
 			_Utils_Tuple2(0, 0));
 	}
 };
-var $author$project$Board$drawRect = F2(
+var $author$project$Items$drawRect = F2(
 	function (x, y) {
 		return A2(
 			$elm$svg$Svg$rect,
@@ -9783,16 +9951,8 @@ var $elm$core$List$minimum = function (list) {
 		return $elm$core$Maybe$Nothing;
 	}
 };
-var $elm$html$Html$Events$onMouseDown = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'mousedown',
-		$elm$json$Json$Decode$succeed(msg));
-};
-var $author$project$Board$drawPieceIcon = F2(
-	function (showTooltip, _v0) {
-		var id = _v0.a;
-		var piece = _v0.b;
+var $author$project$Items$drawPieceIcon = F2(
+	function (showTooltip, piece) {
 		var vbtopy = A2(
 			$elm$core$Maybe$withDefault,
 			0,
@@ -9800,7 +9960,7 @@ var $author$project$Board$drawPieceIcon = F2(
 				A2(
 					$elm$core$List$map,
 					$elm$core$Tuple$second,
-					$author$project$Board$shapeToIndexes(piece.shape))));
+					$author$project$Items$shapeToIndexes(piece.shape))));
 		var vbtopx = A2(
 			$elm$core$Maybe$withDefault,
 			0,
@@ -9808,7 +9968,7 @@ var $author$project$Board$drawPieceIcon = F2(
 				A2(
 					$elm$core$List$map,
 					$elm$core$Tuple$first,
-					$author$project$Board$shapeToIndexes(piece.shape))));
+					$author$project$Items$shapeToIndexes(piece.shape))));
 		var vbwidth = A2(
 			$elm$core$Maybe$withDefault,
 			0,
@@ -9816,7 +9976,7 @@ var $author$project$Board$drawPieceIcon = F2(
 				A2(
 					$elm$core$List$map,
 					$elm$core$Tuple$first,
-					$author$project$Board$shapeToIndexes(piece.shape)))) - vbtopx;
+					$author$project$Items$shapeToIndexes(piece.shape)))) - vbtopx;
 		var vbheight = A2(
 			$elm$core$Maybe$withDefault,
 			0,
@@ -9824,7 +9984,7 @@ var $author$project$Board$drawPieceIcon = F2(
 				A2(
 					$elm$core$List$map,
 					$elm$core$Tuple$second,
-					$author$project$Board$shapeToIndexes(piece.shape)))) - vbtopy;
+					$author$project$Items$shapeToIndexes(piece.shape)))) - vbtopy;
 		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
@@ -9833,8 +9993,8 @@ var $author$project$Board$drawPieceIcon = F2(
 					$elm$html$Html$Attributes$class(
 					showTooltip ? 'tile' : ''),
 					$elm$html$Html$Events$onMouseDown(
-					$author$project$Board$DragFromHandStart(
-						A2($author$project$Board$DragPieceFromHand, piece, id)))
+					$author$project$Items$DragFromHandStart(
+						$author$project$Items$DragPiece(piece)))
 				]),
 			_List_fromArray(
 				[
@@ -9853,16 +10013,16 @@ var $author$project$Board$drawPieceIcon = F2(
 					_Utils_ap(
 						_List_fromArray(
 							[
-								$author$project$Board$drawPieceBorder(piece)
+								$author$project$Items$drawPieceBorder(piece)
 							]),
 						A2(
 							$elm$core$List$map,
-							function (_v1) {
-								var x = _v1.a;
-								var y = _v1.b;
-								return A2($author$project$Board$drawRect, x, y);
+							function (_v0) {
+								var x = _v0.a;
+								var y = _v0.b;
+								return A2($author$project$Items$drawRect, x, y);
 							},
-							$author$project$Board$shapeToIndexes(piece.shape)))),
+							$author$project$Items$shapeToIndexes(piece.shape)))),
 					A2(
 					$elm$html$Html$div,
 					_List_fromArray(
@@ -9871,7 +10031,7 @@ var $author$project$Board$drawPieceIcon = F2(
 						]),
 					_List_fromArray(
 						[
-							$author$project$Board$drawPieceTooltip(piece)
+							$author$project$Items$drawPieceTooltip(piece)
 						]))
 				]));
 	});
@@ -9883,12 +10043,7 @@ var $elm$virtual_dom$VirtualDom$attribute = F2(
 			_VirtualDom_noJavaScriptOrHtmlUri(value));
 	});
 var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
-var $elm$svg$Svg$Attributes$class = _VirtualDom_attribute('class');
-var $elm$svg$Svg$Attributes$dominantBaseline = _VirtualDom_attribute('dominant-baseline');
-var $elm$svg$Svg$text = $elm$virtual_dom$VirtualDom$text;
-var $elm$svg$Svg$Attributes$textAnchor = _VirtualDom_attribute('text-anchor');
-var $elm$svg$Svg$text_ = $elm$svg$Svg$trustedNode('text');
-var $author$project$Board$drawTileIconSvg = function (tile) {
+var $author$project$Items$drawTileIconSvg = function (tile) {
 	return A2(
 		$elm$svg$Svg$svg,
 		_List_fromArray(
@@ -9911,7 +10066,7 @@ var $author$project$Board$drawTileIconSvg = function (tile) {
 						$elm$svg$Svg$Attributes$width('50'),
 						$elm$svg$Svg$Attributes$height('50'),
 						$elm$svg$Svg$Attributes$fill(
-						$author$project$Board$colorToString(tile.color))
+						$author$project$Items$colorToString(tile.color))
 					]),
 				_List_Nil),
 				A2(
@@ -9933,10 +10088,8 @@ var $author$project$Board$drawTileIconSvg = function (tile) {
 					]))
 			]));
 };
-var $author$project$Board$drawTileIcon = F2(
-	function (showTooltip, _v0) {
-		var id = _v0.a;
-		var tile = _v0.b;
+var $author$project$Items$drawTileIcon = F2(
+	function (showTooltip, tile) {
 		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
@@ -9945,12 +10098,12 @@ var $author$project$Board$drawTileIcon = F2(
 					$elm$html$Html$Attributes$class(
 					showTooltip ? 'tile' : ''),
 					$elm$html$Html$Events$onMouseDown(
-					$author$project$Board$DragFromHandStart(
-						A2($author$project$Board$DragTileFromHand, tile, id)))
+					$author$project$Items$DragFromHandStart(
+						$author$project$Items$DragTile(tile)))
 				]),
 			_List_fromArray(
 				[
-					$author$project$Board$drawTileIconSvg(tile),
+					$author$project$Items$drawTileIconSvg(tile),
 					A2(
 					$elm$html$Html$div,
 					_List_fromArray(
@@ -9959,22 +10112,32 @@ var $author$project$Board$drawTileIcon = F2(
 						]),
 					_List_fromArray(
 						[
-							$author$project$Board$drawTileTooltip(tile)
+							$author$project$Items$drawTileTooltip(tile)
 						]))
 				]));
 	});
 var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
 var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
-var $author$project$Crafting$Craft = {$: 'Craft'};
+var $author$project$Crafting$ApplyScroll = {$: 'ApplyScroll'};
 var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var $elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var $author$project$Crafting$OrbSelected = function (a) {
+	return {$: 'OrbSelected', a: a};
+};
 var $elm$html$Html$Events$onClick = function (msg) {
 	return A2(
 		$elm$html$Html$Events$on,
 		'click',
 		$elm$json$Json$Decode$succeed(msg));
-};
-var $author$project$Crafting$OrbSelected = function (a) {
-	return {$: 'OrbSelected', a: a};
 };
 var $author$project$Crafting$viewOrbs = F2(
 	function (orbs, selected) {
@@ -10005,7 +10168,7 @@ var $author$project$Crafting$viewOrbs = F2(
 							]),
 						_List_fromArray(
 							[
-								$author$project$Board$drawColorCircle(orb),
+								$author$project$Items$drawColorCircle(orb),
 								$elm$html$Html$text(
 								': ' + $elm$core$String$fromInt(quant))
 							]));
@@ -10064,6 +10227,67 @@ var $author$project$Crafting$viewScrolls = F2(
 				},
 				scrolls));
 	});
+var $author$project$Items$DragLeave = {$: 'DragLeave'};
+var $author$project$Items$DragOverBench = {$: 'DragOverBench'};
+var $author$project$Items$DragFromBenchStart = function (a) {
+	return {$: 'DragFromBenchStart', a: a};
+};
+var $author$project$Crafting$drawEssenceIcon = function (mEssence) {
+	if (mEssence.$ === 'Just') {
+		var essence = mEssence.a;
+		return A2(
+			$elm$html$Html$map,
+			$author$project$Crafting$DragMsg,
+			A2($author$project$Items$drawEssence, $author$project$Items$DragFromBenchStart, essence));
+	} else {
+		return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+	}
+};
+var $author$project$Crafting$drawTileIcon = function (mTile) {
+	if (mTile.$ === 'Just') {
+		var tile = mTile.a;
+		return A2(
+			$elm$html$Html$map,
+			$author$project$Crafting$DragMsg,
+			A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onMouseDown(
+						$author$project$Items$DragFromBenchStart(
+							$author$project$Items$DragTile(tile))),
+						$elm$html$Html$Attributes$class('tile')
+					]),
+				_List_fromArray(
+					[
+						$author$project$Items$drawTileIconSvg(tile),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('tooltip')
+							]),
+						_List_fromArray(
+							[
+								$author$project$Items$drawTileTooltip(tile)
+							]))
+					])));
+	} else {
+		return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+	}
+};
+var $elm$html$Html$Events$onMouseEnter = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'mouseenter',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $elm$html$Html$Events$onMouseLeave = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'mouseleave',
+		$elm$json$Json$Decode$succeed(msg));
+};
 var $author$project$Crafting$viewTileBench = F2(
 	function (tile, essence) {
 		return A2(
@@ -10072,9 +10296,24 @@ var $author$project$Crafting$viewTileBench = F2(
 				[
 					A2($elm$html$Html$Attributes$style, 'background-color', 'grey'),
 					A2($elm$html$Html$Attributes$style, 'width', '5vw'),
-					A2($elm$html$Html$Attributes$style, 'height', '8vw')
+					A2($elm$html$Html$Attributes$style, 'min-width', 'max-content'),
+					A2($elm$html$Html$Attributes$style, 'height', '8vw'),
+					A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+					A2($elm$html$Html$Attributes$style, 'flex-direction', 'column'),
+					A2($elm$html$Html$Attributes$style, 'justify-content', 'center'),
+					A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
+					$elm$html$Html$Events$onMouseEnter(
+					$author$project$Crafting$DragMsg($author$project$Items$DragOverBench)),
+					$elm$html$Html$Events$onMouseLeave(
+					$author$project$Crafting$DragMsg($author$project$Items$DragLeave)),
+					$elm$html$Html$Events$onMouseUp(
+					$author$project$Crafting$DragMsg($author$project$Items$DragDrop))
 				]),
-			_List_Nil);
+			_List_fromArray(
+				[
+					$author$project$Crafting$drawTileIcon(tile),
+					$author$project$Crafting$drawEssenceIcon(essence)
+				]));
 	});
 var $author$project$Crafting$viewCraftingTable = function (state) {
 	return A2(
@@ -10086,11 +10325,15 @@ var $author$project$Crafting$viewCraftingTable = function (state) {
 				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						$elm$html$Html$Events$onClick($author$project$Crafting$Craft)
+						A2(
+						$elm$html$Html$Events$stopPropagationOn,
+						'mouseup',
+						$elm$json$Json$Decode$succeed(
+							_Utils_Tuple2($author$project$Crafting$ApplyScroll, true)))
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Craft')
+						$elm$html$Html$text('Apply Scroll')
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -10134,9 +10377,9 @@ var $author$project$Main$viewLeftPane = function (model) {
 					A2(
 						$elm$core$Basics$composeL,
 						$elm$html$Html$map($author$project$Main$DragMsg),
-						$author$project$Board$drawPieceIcon(
-							_Utils_eq(model.dragedItem, $author$project$Board$None))),
-					$elm$core$Dict$toList(model.pieces))),
+						$author$project$Items$drawPieceIcon(
+							_Utils_eq(model.dragedItem, $author$project$Items$None))),
+					model.pieces)),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
@@ -10150,20 +10393,37 @@ var $author$project$Main$viewLeftPane = function (model) {
 					A2(
 						$elm$core$Basics$composeL,
 						$elm$html$Html$map($author$project$Main$DragMsg),
-						$author$project$Board$drawTileIcon(
-							_Utils_eq(model.dragedItem, $author$project$Board$None))),
-					$elm$core$Dict$toList(model.tiles))),
+						$author$project$Items$drawTileIcon(
+							_Utils_eq(model.dragedItem, $author$project$Items$None))),
+					model.tiles)),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+						A2($elm$html$Html$Attributes$style, 'gap', '5px'),
+						A2($elm$html$Html$Attributes$style, 'flex-wrap', 'wrap')
+					]),
+				A2(
+					$elm$core$List$map,
+					A2(
+						$elm$core$Basics$composeL,
+						A2(
+							$elm$core$Basics$composeL,
+							$elm$html$Html$map($author$project$Main$CraftingMsg),
+							$elm$html$Html$map($author$project$Crafting$DragMsg)),
+						$author$project$Items$drawEssence($author$project$Items$DragFromHandStart)),
+					model.essences)),
 				A2(
 				$elm$html$Html$map,
 				$author$project$Main$CraftingMsg,
 				$author$project$Crafting$viewCraftingTable(model.craftingTable))
 			]));
 };
-var $author$project$Board$DragFromBoardStart = function (a) {
+var $author$project$Items$DragFromBoardStart = function (a) {
 	return {$: 'DragFromBoardStart', a: a};
 };
-var $author$project$Board$DragLeave = {$: 'DragLeave'};
-var $author$project$Board$DragOverField = function (a) {
+var $author$project$Items$DragOverField = function (a) {
 	return {$: 'DragOverField', a: a};
 };
 var $elm$svg$Svg$Attributes$opacity = _VirtualDom_attribute('opacity');
@@ -10220,18 +10480,6 @@ var $author$project$Board$drawFieldRect = F4(
 					]),
 				$author$project$Board$drawHighlight(highlight)));
 	});
-var $elm$html$Html$Events$onMouseEnter = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'mouseenter',
-		$elm$json$Json$Decode$succeed(msg));
-};
-var $elm$html$Html$Events$onMouseLeave = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'mouseleave',
-		$elm$json$Json$Decode$succeed(msg));
-};
 var $author$project$Board$drawTile = F4(
 	function (_v0, pieceId, tile, highlight) {
 		var xIndex = _v0.a;
@@ -10248,11 +10496,11 @@ var $author$project$Board$drawTile = F4(
 					$elm$svg$Svg$Attributes$width('50'),
 					$elm$svg$Svg$Attributes$height('50'),
 					$elm$html$Html$Events$onMouseEnter(
-					$author$project$Board$DragOverField(
+					$author$project$Items$DragOverField(
 						_Utils_Tuple2(xIndex, yIndex))),
-					$elm$html$Html$Events$onMouseLeave($author$project$Board$DragLeave),
+					$elm$html$Html$Events$onMouseLeave($author$project$Items$DragLeave),
 					$elm$html$Html$Events$onMouseDown(
-					$author$project$Board$DragFromBoardStart(
+					$author$project$Items$DragFromBoardStart(
 						_Utils_Tuple2(xIndex, yIndex)))
 				]),
 			_Utils_ap(
@@ -10267,7 +10515,7 @@ var $author$project$Board$drawTile = F4(
 								$elm$svg$Svg$Attributes$width('50'),
 								$elm$svg$Svg$Attributes$height('50'),
 								$elm$svg$Svg$Attributes$fill(
-								$author$project$Board$colorToString(tile.color))
+								$author$project$Items$colorToString(tile.color))
 							]),
 						_List_Nil),
 						A2(
@@ -10312,8 +10560,8 @@ var $author$project$Board$drawField = F2(
 					_List_fromArray(
 						[
 							$elm$html$Html$Events$onMouseOver(
-							$author$project$Board$DragOverField(index)),
-							$elm$html$Html$Events$onMouseLeave($author$project$Board$DragLeave)
+							$author$project$Items$DragOverField(index)),
+							$elm$html$Html$Events$onMouseLeave($author$project$Items$DragLeave)
 						]));
 			case 'Empty':
 				var pieceId = field.a;
@@ -10329,10 +10577,10 @@ var $author$project$Board$drawField = F2(
 					_List_fromArray(
 						[
 							$elm$html$Html$Events$onMouseOver(
-							$author$project$Board$DragOverField(index)),
-							$elm$html$Html$Events$onMouseLeave($author$project$Board$DragLeave),
+							$author$project$Items$DragOverField(index)),
+							$elm$html$Html$Events$onMouseLeave($author$project$Items$DragLeave),
 							$elm$html$Html$Events$onMouseDown(
-							$author$project$Board$DragFromBoardStart(index))
+							$author$project$Items$DragFromBoardStart(index))
 						]));
 			case 'Wall':
 				var highlight = field.a;
@@ -10432,16 +10680,6 @@ var $author$project$Board$toList = function (array) {
 	return $elm$core$Array$toList(
 		A2($elm$core$Array$map, $elm$core$Array$toList, array));
 };
-var $elm$core$Dict$values = function (dict) {
-	return A3(
-		$elm$core$Dict$foldr,
-		F3(
-			function (key, value, valueList) {
-				return A2($elm$core$List$cons, value, valueList);
-			}),
-		_List_Nil,
-		dict);
-};
 var $author$project$Board$drawBoard = function (board) {
 	return A2(
 		$elm$svg$Svg$svg,
@@ -10450,10 +10688,7 @@ var $author$project$Board$drawBoard = function (board) {
 				$elm$svg$Svg$Attributes$viewBox('0 0 210 210')
 			]),
 		_Utils_ap(
-			A2(
-				$elm$core$List$map,
-				$author$project$Board$drawPieceBorder,
-				$elm$core$Dict$values(board.pieces)),
+			A2($elm$core$List$map, $author$project$Items$drawPieceBorder, board.pieces),
 			A2($elm$core$Basics$composeL, $elm$core$List$concat, $author$project$Board$toList)(
 				A2($author$project$Board$indexedMap, $author$project$Board$drawField, board.tiles))));
 };
@@ -10479,7 +10714,7 @@ var $author$project$Board$drawColReq = F2(
 						$elm$html$Html$Attributes$class('noselect')
 					]),
 				$elm$core$List$concat(
-					A3($elm$core$List$map2, $author$project$Board$drawReq, scores, reqs)));
+					A3($elm$core$List$map2, $author$project$Items$drawReq, scores, reqs)));
 		} else {
 			return A2(
 				$elm$html$Html$div,
@@ -10516,7 +10751,7 @@ var $author$project$Board$drawRowReq = F2(
 						$elm$html$Html$Attributes$class('noselect')
 					]),
 				$elm$core$List$concat(
-					A3($elm$core$List$map2, $author$project$Board$drawReq, scores, reqs)));
+					A3($elm$core$List$map2, $author$project$Items$drawReq, scores, reqs)));
 		} else {
 			return A2(
 				$elm$html$Html$div,
@@ -10590,10 +10825,10 @@ var $author$project$Main$view = function (model) {
 					A2($elm$html$Html$Attributes$style, 'position', 'relative'),
 					A2($elm$html$Html$Attributes$style, 'padding-left', '1vw')
 				]),
-			_Utils_eq(model.dragedItem, $author$project$Board$None) ? _List_Nil : _List_fromArray(
+			_Utils_eq(model.dragedItem, $author$project$Items$None) ? _List_Nil : _List_fromArray(
 				[
 					$elm$html$Html$Events$onMouseUp(
-					$author$project$Main$DragMsg($author$project$Board$DragDrop))
+					$author$project$Main$DragMsg($author$project$Items$DragDrop))
 				])),
 		_Utils_ap(
 			_List_fromArray(
@@ -10637,14 +10872,14 @@ var $author$project$Main$view = function (model) {
 							_List_Nil,
 							A2(
 								$elm$core$Maybe$map,
-								A2($elm$core$Basics$composeL, $elm$core$List$singleton, $author$project$Board$drawTileTooltip),
+								A2($elm$core$Basics$composeL, $elm$core$List$singleton, $author$project$Items$drawTileTooltip),
 								model.hoveredTile)),
 						A2(
 							$elm$core$Maybe$withDefault,
 							_List_Nil,
 							A2(
 								$elm$core$Maybe$map,
-								A2($elm$core$Basics$composeL, $elm$core$List$singleton, $author$project$Board$drawPieceTooltip),
+								A2($elm$core$Basics$composeL, $elm$core$List$singleton, $author$project$Items$drawPieceTooltip),
 								model.hoveredPiece))))
 				]) : _List_Nil));
 };

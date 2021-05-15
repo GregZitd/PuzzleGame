@@ -7,7 +7,22 @@ import Dict
 import Array
 import List.Extra
 
-import Board exposing (Piece, Shape(..), Color(..), Board, Tile, Field(..), emptyScore, ScoreDict, Property, PieceDict, TileDict, Board)
+import Board exposing ( Board, Field(..), ScoreDict)
+import Items exposing(Piece, Shape(..), Color(..), Tile, emptyScore, Property)
+
+type alias State =
+    { nextTileId : Int
+    , nextPieceId : Int
+    , level : Int
+    }
+
+init : State
+init =
+    { nextTileId = 0
+    , nextPieceId = 0
+    , level = 1
+    }
+    
 
 avgRowReq : Int -> Float
 avgRowReq level = (toFloat level * 2 + 2) / 3
@@ -18,7 +33,7 @@ generateBoard level =
             { tiles =
                 Array.repeat 4 <|
                     Array.repeat 4 (NonTile False)
-            , pieces = Dict.empty
+            , pieces = []
             , highlight = []
             , rowReqs = Dict.empty
             , colReqs = Dict.empty
@@ -64,11 +79,23 @@ splitTo3 num =
         tail = Random.map2 (-) (Random.constant num) head
     in Random.map2 (::) head (Random.andThen splitTo2 tail)
 
-generateColor : Random.Generator Board.Color
-generateColor =
-    Random.uniform Purple [Green, Yellow, Orange]
+generateColor : List Color -> Random.Generator Color
+generateColor blocked =
+    let go colors =
+            case colors of
+                (col :: rest) ->
+                    if List.member col blocked then
+                        go rest
+                    else
+                        Random.uniform col
+                            <| List.filter (\c -> not <| List.member c (col :: blocked))
+                                [Purple, Green, Yellow, Orange]        
+                _ ->
+                    --Defaulting to purple, this case should never occur.
+                    Random.constant Purple
+    in go [Purple, Green, Yellow, Orange] 
 
-generateSecondColor : Board.Color -> Random.Generator Board.Color
+generateSecondColor : Items.Color -> Random.Generator Items.Color
 generateSecondColor firstColor =
     if firstColor == Purple then
         Random.weighted (0.3, Purple) <| List.map (Tuple.pair (3/12)) [Green, Yellow, Orange]
@@ -77,13 +104,13 @@ generateSecondColor firstColor =
             <| List.map (Tuple.pair (3/12))
             <| List.Extra.remove firstColor [Purple, Green, Yellow, Orange]
 
-generateReq : Int -> Random.Generator Board.Score
+generateReq : Int -> Random.Generator Items.Score
 generateReq sum =
     if sum <= 3 then
         generateSingleColorReq sum
     else
         let values = splitTo2 sum
-            fstColor = generateColor
+            fstColor = generateColor []
             sndColor = Random.andThen generateSecondColor fstColor
             toScore vals fstCol sndCol =
                 case vals of
@@ -95,11 +122,11 @@ generateReq sum =
                     _ -> emptyScore
         in Random.map3 toScore values fstColor sndColor
 
-generateSingleColorReq : Int -> Random.Generator Board.Score
+generateSingleColorReq : Int -> Random.Generator Items.Score
 generateSingleColorReq sum =
     Random.map
         (\color -> List.Extra.setIf ((==) color << Tuple.first) (color, sum) emptyScore)
-        generateColor
+        <| generateColor []
     
 generateRowReqs : Int -> Random.Generator ScoreDict
 generateRowReqs level =
@@ -124,13 +151,13 @@ generate2Piece level =
     in reqNum
         |> Random.andThen generateSingleColorReq
         |> Random.map (\req -> 
-            { shape = Twoi Board.twoiStartIndex
+            { shape = Twoi Items.twoiStartIndex
             , borderTransform = {rotate = 0, translate = (0,0)}
             , drawPosition = Nothing
             , positions = []
             , req = req
             , score = emptyScore
-            , level = level
+            , id = 0
             })
 
 generate3Piece : Int -> Random.Generator Piece
@@ -145,9 +172,9 @@ generate3Piece level =
             , positions = []
             , req = req
             , score = emptyScore
-            , level = level
+            , id = 0
             })
-            (Random.uniform (Threei Board.threeiStartIndex) [Threel Board.threelStartIndex])
+            (Random.uniform (Threei Items.threeiStartIndex) [Threel Items.threelStartIndex])
 
 generate4Piece : Int -> Random.Generator Piece
 generate4Piece level =
@@ -161,42 +188,66 @@ generate4Piece level =
             , positions = []
             , req = req
             , score = emptyScore
-            , level = level
+            , id = 0
             })
-            (Random.uniform (Fouro Board.fouroStartIndex)
-                 [ Fourt Board.fourtStartIndex
-                 , Fours Board.foursStartIndex
-                 , Fourz Board.fourzStartIndex
-                 , Fourl Board.fourlStartIndex
+            (Random.uniform (Fouro Items.fouroStartIndex)
+                 [ Fourt Items.fourtStartIndex
+                 , Fours Items.foursStartIndex
+                 , Fourz Items.fourzStartIndex
+                 , Fourl Items.fourlStartIndex
                  ]
             )
 
-generatePieceDict : Int -> Random.Generator PieceDict
-generatePieceDict level =
-    let fieldSum = 10 + level * 2
-        nextPiece randPieceList size =
-            let next =
-                    case size of
-                        2 -> generate2Piece level
-                        3 -> generate3Piece level
-                        _ -> generate4Piece level
-            in Random.map2 (::) next randPieceList
+generatePiece :Int -> State -> Random.Generator (State, Piece)
+generatePiece size state =
+    let next =
+            case size of
+                2 -> generate2Piece state.level 
+                3 -> generate3Piece state.level
+                _ -> generate4Piece state.level
+       in Random.map
+           (\piece ->
+                ( { state | nextPieceId = state.nextPieceId + 1 }
+                , { piece | id = state.nextPieceId }
+                )
+           )
+           next
+       
+    
 
-        go sumLeft pieceList =
-            case sumLeft of
-                0 -> pieceList
-                2 -> nextPiece pieceList 2
-                3 -> nextPiece pieceList 3
-                4 -> Random.andThen
-                         (\randInt -> go (sumLeft - randInt) <| nextPiece pieceList randInt)
-                         (Random.weighted (2,2) [(5,4)])
-                5 -> Random.andThen 
-                         (\randInt -> go (sumLeft - randInt) <| nextPiece pieceList randInt)
-                         (Random.weighted (2,2) [(3,3)])
-                _ -> Random.andThen 
-                         (\randInt -> go (sumLeft - randInt) <| nextPiece pieceList randInt)
-                         (Random.weighted (2,2) [(3,3), (5,4)])
-    in Random.map (Dict.fromList << List.indexedMap Tuple.pair) (go fieldSum <| Random.constant [])
+generatePieceList : State -> Random.Generator (State, List Piece)
+generatePieceList state =
+    let fieldSum = 10 + state.level * 2
+        -- nextPiece randPieceList size =
+        --     let next =
+        --             case size of
+        --                 2 -> generate2Piece level 
+        --                 3 -> generate3Piece level
+        --                 _ -> generate4Piece level
+        --     in Random.map2 (::) next randPieceList
+
+        go : Int -> Random.Generator (State, List Piece) -> Random.Generator (State, List Piece)
+        go sumLeft rStateList =
+            let next randInt =
+                    Random.andThen
+                        (\(nextState, nextPiece) ->
+                             go (sumLeft - randInt)  
+                                 <| Random.map (\(_,ls) -> (nextState, nextPiece :: ls)) rStateList
+                        )
+                        <| Random.andThen (generatePiece randInt << Tuple.first) rStateList
+
+                    -- let (nextState, nextPiece) = generatePiece randInt goState
+                    -- in  go (sumLeft - randInt) nextState
+                    --     <| Random.map2 (::) nextPiece pieceList
+            in case sumLeft of
+                0 -> rStateList
+                2 -> Random.andThen next <| Random.constant 2
+                3 -> Random.andThen next <| Random.constant 3
+                4 -> Random.andThen next <| Random.weighted (2,2) [(5,4)]
+                5 -> Random.andThen next <| Random.weighted (2,2) [(3,3)]
+                _ -> Random.andThen next <| Random.weighted (2,2) [(3,3), (5,4)]
+    in go fieldSum <| Random.constant (state, [])
+    -- in Random.map (Dict.fromList << List.indexedMap Tuple.pair) (go fieldSum <| Random.constant [])
 
 --TILE
 
@@ -210,11 +261,11 @@ defaultTile =
         , addBonus = 0
         , properties = []
         , drawPosition = Nothing
-        , level = 1
+        , id = 0
         }
 
-generateBase : Int -> Tile -> Random.Generator Tile
-generateBase level tile =
+generateBase : Int -> List Color -> Tile -> Random.Generator Tile
+generateBase level blockedColors tile =
     let is3Tile = Random.map ((>) (toFloat level * 0.015 + 0.05)) <| Random.float 0 1
         is2Tile = Random.map ((>) (toFloat level * 0.025 + 0.15)) <| Random.float 0 1
         updateTileBaseVal three two uTile =
@@ -228,23 +279,60 @@ generateBase level tile =
             { uTile | color = col }
     in Random.constant tile
         |> Random.map3 updateTileBaseVal is3Tile is2Tile
-        |> Random.map2 updateTileColor generateColor
+        |> Random.map2 updateTileColor (generateColor blockedColors)
 
-generateTile : Int -> Random.Generator Tile
-generateTile level =
-    let baseTile = Random.andThen (generateBase level) defaultTile
-        genProperties roll1 roll2 =
+generateTile : State -> Random.Generator (State, Tile)
+generateTile state =
+    let baseTile = Random.andThen (generateBase state.level []) defaultTile
+        -- genProperties roll1 roll2 =
+        --     if roll1 <= state.level then
+        --         if roll1 + roll2 <= state.level then
+        --             Random.list 2 (generateProperty state.level [])
+        --         else
+        --             Random.list 1 (generateProperty state.level [])
+        --     else
+        --         Random.constant []
+    in Random.map2
+           (\tile props ->
+                ( { state | nextTileId = state.nextTileId + 1 }
+                , { tile | properties = props, id = state.nextTileId }
+                )
+           )
+           baseTile
+           (generateProperties state.level [])
+       
+generateProperties : Int -> List Color -> Random.Generator (List Property)
+generateProperties level blockedColors =
+    let gen roll1 roll2 = 
             if roll1 <= level then
                 if roll1 + roll2 <= level then
-                    Random.list 2 (generateProperty level)
+                    Random.list 2 (generateProperty level blockedColors)
                 else
-                    Random.list 1 (generateProperty level)
+                    Random.list 1 (generateProperty level blockedColors)
             else
                 Random.constant []
-    in Random.map2
-        (\tile props -> { tile | properties = props })
-        baseTile
-        <| Random.Extra.andThen2 genProperties (Random.int 1 8) (Random.int 1 8)
+    in Random.Extra.andThen2 gen (Random.int 1 8) (Random.int 1 8)
+
+rerollProperties : Int -> List Color -> Tile -> Random.Generator Tile
+rerollProperties level blockedColors tile =
+    Random.map
+        (\props -> { tile | properties = props } )
+        <| generateProperties level blockedColors
+
+generateTileList : Int -> State -> Random.Generator (State, List Tile)
+generateTileList length state =
+    let go remLength rStateList =
+            if remLength == 0 then
+                rStateList
+            else
+                rStateList
+                    |> Random.andThen (generateTile << Tuple.first)
+                    |> Random.map2
+                        (\(_,list) (nextState, nextTile) -> (nextState, nextTile :: list))
+                        rStateList
+                    |> go (remLength - 1)
+
+    in go length <| Random.constant (state, [])
 
 --PROPERTY
                    
@@ -303,10 +391,10 @@ generateBonus level property =
 generate2Region : Int -> Property -> Random.Generator Property
 generate2Region level property =
     let req = pRound <| (avgRowReq level) / 2
-        region = Random.uniform Board.prop2OpEdge
-                     [ Board.prop2OpCorn
-                     , Board.prop2Corn1
-                     , Board.prop2Corn2
+        region = Random.uniform Items.prop2OpEdge
+                     [ Items.prop2OpCorn
+                     , Items.prop2Corn1
+                     , Items.prop2Corn2
                      ]
         update requ regi prop =
             { prop | reqValue = requ, region = regi }
@@ -315,7 +403,7 @@ generate2Region level property =
 generate3Region : Int -> Property -> Random.Generator Property
 generate3Region level property =
     let req = pRound <| 3 * (avgRowReq level) / 4
-        region = Random.uniform Board.prop3Corn [Board.prop3Edge]
+        region = Random.uniform Items.prop3Corn [Items.prop3Edge]
         update requ regi prop =
             { prop | reqValue = requ, region = regi }
     in Random.map3 update req region <| Random.constant property
@@ -324,21 +412,17 @@ generate3Region level property =
 generate4Region : Int -> Property -> Random.Generator Property
 generate4Region level property =
     let req = pRound <| avgRowReq level
-        region = Random.uniform Board.prop4Edge
-                     [ Board.prop4Corn
-                     , Board.prop4Double1
-                     , Board.prop4Double2
+        region = Random.uniform Items.prop4Edge
+                     [ Items.prop4Corn
+                     , Items.prop4Double1
+                     , Items.prop4Double2
                      ]
         update requ regi prop =
             { prop | reqValue = requ, region = regi }
     in Random.map3 update req region <| Random.constant property
 
-generatePropertyColor : Property -> Random.Generator Property
-generatePropertyColor prop =
-    Random.map (\color -> { prop | reqColor = color }) generateColor
-
-generateProperty : Int -> Random.Generator Property
-generateProperty level =
+generateProperty : Int -> List Color -> Random.Generator Property
+generateProperty level blockedColors =
     let bonus =
             Random.map2 
                 (\add prod -> if add == 0 && prod == 0 then (1,0) else (add, prod))
@@ -355,7 +439,7 @@ generateProperty level =
                      , isMet = False
                      }
                 )
-                generateColor
+                (generateColor blockedColors)
                 bonus
         addRegion prop size =
             case size of
@@ -365,3 +449,9 @@ generateProperty level =
     in Random.andThen (addRegion baseProp)
         (Random.weighted (4,2) [(2,3), (4,4)])
     
+
+addProperty : Int -> List Color -> Tile -> Random.Generator Tile
+addProperty level blockedColors tile =
+    Random.map
+        (\prop -> { tile | properties = prop :: tile.properties })
+        <| generateProperty level blockedColors

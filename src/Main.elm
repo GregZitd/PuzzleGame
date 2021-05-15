@@ -12,9 +12,10 @@ import Svg.Attributes as Svga
 import Svg.Events as Svge
 import Json.Decode as Decode
 import Random
+import List.Extra
 
 import Board
-import Demo
+import Items
 import ProcGen
 import Crafting
 
@@ -35,64 +36,85 @@ main =
 
 type alias Model =
     { board: Board.Board
-    , pieces : Board.PieceDict
-    , tiles : Board.TileDict
-    , dragedItem : Board.Drag
+    , pieces : List Items.Piece
+    , tiles : List Items.Tile
+    , essences : List Items.Essence
+    , dragedItem : Items.Drag
     , mousePos : (Int, Int)
-    , hoveredTile : Maybe Board.Tile
-    , hoveredPiece : Maybe Board.Piece
+    , hoveredTile : Maybe Items.Tile
+    , hoveredPiece : Maybe Items.Piece
     , showTileTooltip : Bool
     , craftingTable : Crafting.TableState
+    , craftingBenchHovered : Bool
+    , procGenState : ProcGen.State
     }
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ({ board = Demo.initBoard
-   , pieces = Demo.initPieces
-   , tiles = Demo.initTiles
-   , dragedItem = Board.None
+  ({ board = noBoard
+   , pieces = []
+   , tiles = []
+   , essences = []
+   , dragedItem = Items.None
    , mousePos = (0,0)
    , hoveredTile = Nothing
    , hoveredPiece = Nothing
    , showTileTooltip = False
    , craftingTable = Crafting.init
+   , craftingBenchHovered = False
+   , procGenState = ProcGen.init
    }
   , Cmd.batch [ Random.generate NewBoard (ProcGen.generateBoard 2)
-              , Random.generate NewPieceDict <| ProcGen.generatePieceDict 2
-              , Random.generate NewTileList <| Random.list 12 (ProcGen.generateTile 2)
+              , Random.generate NewPieceList <| ProcGen.generatePieceList ProcGen.init
+              , Random.generate NewTileList <| ProcGen.generateTileList 12 ProcGen.init
               ])
  
+noBoard =
+    { tiles = Array.empty
+    , pieces = []
+    , highlight = []
+    , rowReqs = Dict.empty 
+    , colReqs = Dict.empty 
+    }
 
 -- UPDATE
 
 
 type Msg
-    = DragMsg Board.Msg
+    = DragMsg Items.Msg
     | KeyboardMsg KeyDownInput
     | KeyboardUpMsg KeyUpInput
     | MousePosition Int Int
     | NewBoard Board.Board
-    | NewPieceDict Board.PieceDict
-    | NewTileList (List Board.Tile)
+    | NewPieceList (ProcGen.State, List Items.Piece)
+    | NewTileList (ProcGen.State, List Items.Tile)
     | CraftingMsg Crafting.Msg
 
-updateDrag : Board.Drag -> Model -> Model
+updateDrag : Items.Drag -> Model -> Model
 updateDrag drag model =
     { model
           | dragedItem = drag
           , board = Board.highlightBoard model.board drag
     }
 
+removeDragFromHand : Items.Drag -> Model -> Model
+removeDragFromHand drag model =
+    case drag of
+        Items.DragTile tile ->
+            { model | tiles = List.filter ((/=) (Items.getDragId drag) << .id) model.tiles }
+        Items.DragPiece piece ->
+            { model | pieces = List.filter ((/=) (Items.getDragId drag) << .id) model.pieces }
+        Items.DragEssence essence ->
+            { model | essences = List.filter ((/=) (Items.getDragId drag) << .id) model.essences }
+        Items.None ->
+            model
+
 updateHover : Model -> Model
 updateHover model =
     case model.dragedItem of
-        Board.DragPieceFromHand piece _ ->
+        Items.DragPiece piece -> 
             { model | hoveredPiece = Just piece }
-        Board.DragPieceFromBoard piece -> 
-            { model | hoveredPiece = Just piece }
-        Board.DragTileFromHand tile _ -> 
-            { model | hoveredTile = Just tile }
-        Board.DragTileFromBoard tile -> 
+        Items.DragTile tile -> 
             { model | hoveredTile = Just tile }
         _ ->
             model
@@ -101,72 +123,12 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
       DragMsg dragMsg ->
-          case dragMsg of
-              Board.DragFromHandStart drag ->
-                  ( { model | dragedItem = drag }, Cmd.none )
-
-              Board.DragFromBoardStart index ->
-                  case Board.get index model.board of
-                      Just (Board.Empty pieceId _) ->
-                          case Board.removePiece model.board pieceId of
-                                 Ok (board, piece) ->
-                                     ( updateDrag
-                                           (Board.DragPieceFromBoard
-                                                 <| Board.newDrawPosition
-                                                     (Just index)
-                                                     (Board.translatePiece index piece))
-                                           { model | board = board, hoveredPiece = Nothing }
-                                     , Cmd.none
-                                     )
-                                 Err err ->
-                                    (model, Cmd.none)
-                      Just (Board.Filled _ tile _) ->
-                          ( { model
-                                  | dragedItem = Board.DragTileFromBoard tile
-                                  , board = Board.removeTile index model.board
-                                  , hoveredTile = Nothing
-                            }, Cmd.none
-                          )
-                      _ ->
-                         (model, Cmd.none)
-
-              Board.DragOverField index ->
-                  let indexedDrag = Board.indexDrag (Just index) model.dragedItem
-                  in case Board.get index model.board of
-                         Just (Board.Filled pieceId tile _) ->
-                             ( updateDrag indexedDrag
-                                   { model | hoveredTile = Just tile
-                                           , hoveredPiece = Dict.get pieceId model.board.pieces
-                                   }, Cmd.none
-                             )
-                         Just (Board.Empty pieceId _) ->
-                             ( updateDrag indexedDrag
-                                   { model | hoveredPiece = Dict.get pieceId model.board.pieces }
-                             , Cmd.none )
-                         _ -> 
-                             ( updateDrag indexedDrag model, Cmd.none )
-                             
-              Board.DragLeave ->
-                  ( { model
-                          | board = Board.removeHighlight model.board
-                          , hoveredTile = Nothing
-                          , hoveredPiece = Nothing
-                          , dragedItem = Board.indexDrag Nothing model.dragedItem
-                    }
-                  , Cmd.none
-                  )
-
-              Board.DragDrop ->
-                  case Board.insertDrag model.board model.dragedItem of
-                      Ok board ->
-                          dragEnd True <| updateHover { model | board = board }
-                      Err _ ->
-                         dragEnd False model 
-
+          handleDragMsg dragMsg model
+              
       KeyboardMsg key ->
           case key of
               RotateRight ->
-                  let rotatedDrag = Board.rotateDragRight model.dragedItem
+                  let rotatedDrag = Items.rotateDragRight model.dragedItem
                   in ( { model
                              | dragedItem = rotatedDrag
                              , board = Board.highlightBoard
@@ -175,7 +137,7 @@ update msg model =
                      )
                   
               RotateLeft ->
-                  let rotatedDrag = Board.rotateDragLeft model.dragedItem
+                  let rotatedDrag = Items.rotateDragLeft model.dragedItem
                   in ( { model
                              | dragedItem = rotatedDrag
                              , board = Board.highlightBoard
@@ -202,46 +164,123 @@ update msg model =
       NewBoard board ->
           ( { model | board = board }, Cmd.none )
 
-      NewPieceDict pieceDict ->
-          ( { model | pieces = pieceDict }, Cmd.none)
+      NewPieceList (newState, pieceList) ->
+          ( { model | pieces = pieceList, procGenState = newState }, Cmd.none)
 
-      NewTileList tiles ->
-          ( { model | tiles = Dict.fromList (List.indexedMap Tuple.pair tiles) }, Cmd.none )
+      NewTileList (newState, tileList) ->
+          ( { model | tiles = tileList, procGenState = newState }, Cmd.none )
 
       CraftingMsg craftingMsg -> 
-          ( { model | craftingTable = Crafting.update craftingMsg model.craftingTable }, Cmd.none )
+          --let (updatedModel, cmdRaw) =
+          Crafting.update craftingMsg model
+              |> Tuple.mapSecond (Cmd.map CraftingMsg)
+         --     cmd = Cmd.map CraftingMsg cmdRaw 
+          -- in case craftingMsg of
+          --         Crafting.DragOverBench ->
+          --             ( { updatedCrafting | craftingBenchHovered = True }, cmd)
+          --         Crafting.DragLeave -> 
+          --             ( { updatedCrafting | craftingBenchHovered = False }, cmd)
+          --         Crafting.DragStart drag ->
+          --             ( { updatedCrafting | dragedItem = drag }, cmd)
+          --         _ ->
+          --             ( updatedCrafting, cmd)
+
+handleDragMsg : Items.Msg -> Model -> (Model, Cmd Msg)
+handleDragMsg dragMsg model =
+    case dragMsg of
+        Items.DragFromHandStart drag ->
+            ( removeDragFromHand drag { model | dragedItem = drag }, Cmd.none )
+
+        Items.DragFromBoardStart index ->
+            case Board.get index model.board of
+                Just (Board.Empty pieceId _) ->
+                    case Board.removePiece model.board pieceId of
+                           Ok (board, piece) ->
+                               ( updateDrag
+                                     (Items.DragPiece
+                                           <| Items.newDrawPosition
+                                               (Just index)
+                                               (Items.translatePiece index piece))
+                                     { model | board = board, hoveredPiece = Nothing }
+                               , Cmd.none
+                               )
+                           Err err ->
+                              (model, Cmd.none)
+                Just (Board.Filled _ tile _) ->
+                    ( { model
+                            | dragedItem = Items.DragTile tile
+                            , board = Board.removeTile index model.board
+                            , hoveredTile = Nothing
+                      }, Cmd.none
+                    )
+                _ ->
+                   (model, Cmd.none)
+
+        Items.DragFromBenchStart drag ->
+            (model, Cmd.none)
+
+        Items.DragOverField index ->
+            let indexedDrag = Items.indexDrag (Just index) model.dragedItem
+            in case Board.get index model.board of
+                   Just (Board.Filled pieceId tile _) ->
+                       ( updateDrag indexedDrag
+                             { model | hoveredTile = Just tile
+                                     , hoveredPiece =
+                                   List.Extra.find ((==) pieceId << .id) model.board.pieces -- Dict.get pieceId model.board.pieces
+                             }, Cmd.none
+                       )
+                   Just (Board.Empty pieceId _) ->
+                       ( updateDrag indexedDrag
+                             { model | hoveredPiece =
+                                   List.Extra.find ((==) pieceId << .id) model.board.pieces --Dict.get pieceId model.board.pieces }
+                             }, Cmd.none )
+                   _ -> 
+                       ( updateDrag indexedDrag model, Cmd.none )
+
+        Items.DragOverBench ->
+            (model, Cmd.none)
+
+        Items.DragLeave ->
+            ( { model
+                    | board = Board.removeHighlight model.board
+                    , hoveredTile = Nothing
+                    , hoveredPiece = Nothing
+                    , dragedItem = Items.indexDrag Nothing model.dragedItem
+              }
+            , Cmd.none
+            )
+
+        Items.DragDrop ->
+            -- if model.craftingBenchHovered then
+            --     case Crafting.dropDrag model.dragedItem model.craftingTable of
+            --         Ok newTable ->
+            --             dragEnd True <| { model | craftingTable = newTable }
+            --         Err _ ->
+            --             dragEnd False model
+            -- else
+                case Board.insertDrag model.board model.dragedItem of
+                    Ok board ->
+                        dragEnd True <| updateHover { model | board = board }
+                    Err _ ->
+                       dragEnd False model 
+
 
 dragEnd : Bool -> Model -> (Model, Cmd Msg)
 dragEnd success model =
-    let removedFromHand =
-            if success then 
+    let addedToHand = 
+            if not success then
                 case model.dragedItem of
-                    Board.DragTileFromHand _ id ->
-                        { model | tiles = Dict.remove id model.tiles }
-                    Board.DragPieceFromHand _ id ->
-                        { model | pieces = Dict.remove id model.pieces }
+                    Items.DragTile tile ->
+                        { model | tiles = tile :: model.tiles }
+                    Items.DragPiece piece ->
+                        { model | pieces =
+                              { piece | drawPosition = Nothing, positions = [] } :: model.pieces
+                        }
                     _ -> model
-            else case model.dragedItem of
-                     Board.DragPieceFromBoard piece ->
-                         { model | pieces = Tuple.second <|
-                               Board.addToPieceDict
-                                   { piece | drawPosition = Nothing, positions = [] }
-                                   model.pieces
-                         }
-                     Board.DragTileFromBoard tile ->
-                         { model | tiles = Board.addToTileDict tile model.tiles }
-                     Board.DragPieceFromHand piece pieceId ->
-                         { model | pieces =
-                               Dict.update pieceId
-                                   (\_ -> Just { piece | drawPosition = Nothing, positions = [] })
-                                   model.pieces
-                         }
-                     Board.DragTileFromHand tile tileId ->
-                         { model | tiles = Dict.update tileId (\_ -> Just tile) model.tiles }
-                     _ -> model
-    in ({ removedFromHand | dragedItem = Board.None, board = Board.removeHighlight model.board}
+            else model
+    in ({ addedToHand | dragedItem = Items.None, board = Board.removeHighlight model.board}
        , Cmd.none)
-      
+
 -- SUBSCRIPTIONS
 
 
@@ -315,8 +354,8 @@ view model =
           , style "position" "relative"
           , style "padding-left" "1vw"
           ] ++
-              if model.dragedItem == Board.None then []
-              else [ Events.onMouseUp <| DragMsg Board.DragDrop ]
+              if model.dragedItem == Items.None then []
+              else [ Events.onMouseUp <| DragMsg Items.DragDrop ]
         ) <|
         [ div
               [ style "display" "grid"
@@ -338,10 +377,10 @@ view model =
                         , style "position" "absolute"
                         ] <|
                         (Maybe.withDefault [] <|
-                            Maybe.map (List.singleton << Board.drawTileTooltip) model.hoveredTile)
+                            Maybe.map (List.singleton << Items.drawTileTooltip) model.hoveredTile)
                         ++ (Maybe.withDefault [] <|
                                 Maybe.map
-                                    (List.singleton << Board.drawPieceTooltip)
+                                    (List.singleton << Items.drawPieceTooltip)
                                     model.hoveredPiece)
                   ]
               else
@@ -362,12 +401,17 @@ viewLeftPane model =
               , style "gap" "5px"
               ]
             <| List.map
-                (Html.map DragMsg << Board.drawPieceIcon (model.dragedItem == Board.None))
-                (Dict.toList model.pieces)
+                (Html.map DragMsg << Items.drawPieceIcon (model.dragedItem == Items.None))
+                model.pieces
         , div [style "display" "flex", style "gap" "5px", style "flex-wrap" "wrap"]
             <| List.map
-                (Html.map DragMsg << Board.drawTileIcon (model.dragedItem == Board.None))
-                (Dict.toList model.tiles)
+                (Html.map DragMsg << Items.drawTileIcon (model.dragedItem == Items.None))
+                model.tiles
+        , div [style "display" "flex", style "gap" "5px", style "flex-wrap" "wrap"]
+            <| List.map
+                (Html.map CraftingMsg
+                     << Html.map Crafting.DragMsg
+                     << Items.drawEssence Items.DragFromHandStart) model.essences
         , Html.map CraftingMsg <| Crafting.viewCraftingTable model.craftingTable
         ]
 
