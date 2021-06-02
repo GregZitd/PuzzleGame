@@ -45,8 +45,10 @@ type alias Model =
     , hoveredPiece : Maybe Items.Piece
     , showTileTooltip : Bool
     , craftingTable : Crafting.TableState
-    , craftingBenchHovered : Bool
+    , allReqMet : Bool
     , procGenState : ProcGen.State
+    , rewards : Maybe ProcGen.Reward
+    , selectedReward : Maybe Items.Tile
     }
 
 init : () -> (Model, Cmd Msg)
@@ -61,12 +63,18 @@ init _ =
    , hoveredPiece = Nothing
    , showTileTooltip = False
    , craftingTable = Crafting.init
-   , craftingBenchHovered = False
+   , allReqMet = False
    , procGenState = ProcGen.init
+   , rewards = Nothing
+   , selectedReward = Nothing
    }
-  , Cmd.batch [ Random.generate NewBoard (ProcGen.generateBoard 2)
+  , Cmd.batch [ Random.generate NewBoard (ProcGen.generateBoard ProcGen.init.level)
               , Random.generate NewPieceList <| ProcGen.generatePieceList ProcGen.init
               , Random.generate NewTileList <| ProcGen.generateTileList 12 ProcGen.init
+              --for testing
+              -- , Random.generate RewardsGenerated
+              --     <| ProcGen.generateReward
+              --         (List.map (Tuple.mapSecond ((+) 30)) Items.emptyScore) ProcGen.init
               ])
  
 noBoard =
@@ -89,6 +97,10 @@ type Msg
     | NewPieceList (ProcGen.State, List Items.Piece)
     | NewTileList (ProcGen.State, List Items.Tile)
     | CraftingMsg Crafting.Msg
+    | NextLevel
+    | RewardsGenerated (ProcGen.State, ProcGen.Reward)
+    | RewardSelected Items.Tile
+    | RewardConfirmed
 
 updateDrag : Items.Drag -> Model -> Model
 updateDrag drag model =
@@ -171,19 +183,53 @@ update msg model =
           ( { model | tiles = tileList, procGenState = newState }, Cmd.none )
 
       CraftingMsg craftingMsg -> 
-          --let (updatedModel, cmdRaw) =
           Crafting.update craftingMsg model
               |> Tuple.mapSecond (Cmd.map CraftingMsg)
-         --     cmd = Cmd.map CraftingMsg cmdRaw 
-          -- in case craftingMsg of
-          --         Crafting.DragOverBench ->
-          --             ( { updatedCrafting | craftingBenchHovered = True }, cmd)
-          --         Crafting.DragLeave -> 
-          --             ( { updatedCrafting | craftingBenchHovered = False }, cmd)
-          --         Crafting.DragStart drag ->
-          --             ( { updatedCrafting | dragedItem = drag }, cmd)
-          --         _ ->
-          --             ( updatedCrafting, cmd)
+
+      NextLevel ->
+          if model.allReqMet then
+              (model, Random.generate RewardsGenerated
+                   <| ProcGen.generateReward (Board.countTotalReq model.board) model.procGenState
+              )
+          else
+              (model , Cmd.none)
+
+      RewardsGenerated (newState, reward) ->
+          let newProcGenState = { newState | level = newState.level + 1 }
+          in ( { model
+                   | rewards = Just reward
+                   , allReqMet = False
+                   , tiles = Board.gatherAllTiles model.board ++ model.tiles
+                   , procGenState = newProcGenState
+               }
+             , Cmd.batch [ Random.generate NewBoard
+                               (ProcGen.generateBoard newProcGenState.level)
+                         , Random.generate NewPieceList
+                             <| ProcGen.generatePieceList newProcGenState
+                         ]
+             )
+
+      RewardSelected tile ->
+          ( { model | selectedReward = Just tile }, Cmd.none )
+
+      RewardConfirmed ->
+          Maybe.withDefault (model, Cmd.none) <|
+              Maybe.map2
+                  (\reward tile ->
+                         ({ model | tiles = tile :: model.tiles
+                          , rewards = Nothing
+                          , selectedReward = Nothing
+                          , essences = reward.essences ++ model.essences
+                          , craftingTable =
+                              Crafting.addCraftingMats
+                                  model.craftingTable
+                                  reward.scrolls
+                                  reward.orbs
+                          }, Cmd.none
+                         )
+                  )
+                  model.rewards
+                  model.selectedReward
 
 handleDragMsg : Items.Msg -> Model -> (Model, Cmd Msg)
 handleDragMsg dragMsg model =
@@ -201,18 +247,22 @@ handleDragMsg dragMsg model =
                                            <| Items.newDrawPosition
                                                (Just index)
                                                (Items.translatePiece index piece))
-                                     { model | board = board, hoveredPiece = Nothing }
+                                     { model | board = board, hoveredPiece = Nothing
+                                     , allReqMet = Board.allReqMet board
+                                     }
                                , Cmd.none
                                )
                            Err err ->
                               (model, Cmd.none)
                 Just (Board.Filled _ tile _) ->
-                    ( { model
-                            | dragedItem = Items.DragTile tile
-                            , board = Board.removeTile index model.board
-                            , hoveredTile = Nothing
-                      }, Cmd.none
-                    )
+                    let newBoard = Board.removeTile index model.board
+                    in ( { model
+                               | dragedItem = Items.DragTile tile
+                               , board = newBoard
+                               , allReqMet = Board.allReqMet newBoard
+                               , hoveredTile = Nothing
+                         }, Cmd.none
+                       )
                 _ ->
                    (model, Cmd.none)
 
@@ -237,9 +287,6 @@ handleDragMsg dragMsg model =
                    _ -> 
                        ( updateDrag indexedDrag model, Cmd.none )
 
-        Items.DragOverBench ->
-            (model, Cmd.none)
-
         Items.DragLeave ->
             ( { model
                     | board = Board.removeHighlight model.board
@@ -251,16 +298,11 @@ handleDragMsg dragMsg model =
             )
 
         Items.DragDrop ->
-            -- if model.craftingBenchHovered then
-            --     case Crafting.dropDrag model.dragedItem model.craftingTable of
-            --         Ok newTable ->
-            --             dragEnd True <| { model | craftingTable = newTable }
-            --         Err _ ->
-            --             dragEnd False model
-            -- else
                 case Board.insertDrag model.board model.dragedItem of
                     Ok board ->
-                        dragEnd True <| updateHover { model | board = board }
+                        dragEnd True
+                            <| updateHover
+                                { model | board = board, allReqMet = Board.allReqMet board }
                     Err _ ->
                        dragEnd False model 
 
@@ -276,6 +318,8 @@ dragEnd success model =
                         { model | pieces =
                               { piece | drawPosition = Nothing, positions = [] } :: model.pieces
                         }
+                    Items.DragEssence essence ->
+                        { model | essences = essence :: model.essences }
                     _ -> model
             else model
     in ({ addedToHand | dragedItem = Items.None, board = Board.removeHighlight model.board}
@@ -349,50 +393,73 @@ view : Model -> Html Msg
 view model =
     div
         ( [ style "height" "100vh"
-          , style "width" "99vw"
+          ,  style "width" "100vw"
           , style "overflow" "hidden"
           , style "position" "relative"
-          , style "padding-left" "1vw"
+         -- , style "padding-left" "1vw"
           ] ++
               if model.dragedItem == Items.None then []
               else [ Events.onMouseUp <| DragMsg Items.DragDrop ]
         ) <|
-        [ div
+        [ viewRewards model
+        , drawHeadline model
+        , div
               [ style "display" "grid"
               , style "grid-template-columns" "3fr 4fr"
               , style "grid-gap" "10px"
-              , style "height" "100vh"
+              --, style "height" "100vh"
               , style "align-content" "center"
               ]
               [ viewLeftPane model
               , viewRightPane model
               ]
-        ] ++ 
-              if model.showTileTooltip then
-                  [ div [ style "display" "block"
-                        , style "left"
-                            <| String.fromInt (Tuple.first model.mousePos + 10) ++ "px"
-                        , style "top"
-                            <| String.fromInt (Tuple.second model.mousePos + 10) ++ "px"
-                        , style "position" "absolute"
-                        ] <|
-                        (Maybe.withDefault [] <|
-                            Maybe.map (List.singleton << Items.drawTileTooltip) model.hoveredTile)
-                        ++ (Maybe.withDefault [] <|
-                                Maybe.map
-                                    (List.singleton << Items.drawPieceTooltip)
-                                    model.hoveredPiece)
-                  ]
-              else
-                  []
+        , drawTooltip model
+        ] 
+
+drawHeadline : Model -> Html Msg
+drawHeadline model =
+    div [ style "height" "5vh"
+        , style "background-color" "grey"
+        , style "display" "flex"
+        , style "justify-content" "space-between"
+        ]
+        [ div []
+              [text <| "Level: " ++ String.fromInt model.procGenState.level]
+        , div []
+              [ text <| if model.allReqMet then "You can progress to the next level"
+                    else "Some requeriments are not yet met"
+              ]
+        , button [Events.onClick NextLevel] [text "Next Level"]
+        ]
+
+        
+drawTooltip : Model -> Html Msg
+drawTooltip model =
+    if model.showTileTooltip then
+        div [ style "display" "block"
+            , style "left"
+                <| String.fromInt (Tuple.first model.mousePos + 10) ++ "px"
+            , style "top"
+                <| String.fromInt (Tuple.second model.mousePos + 10) ++ "px"
+            , style "position" "absolute"
+            ] <|
+            (Maybe.withDefault [] <|
+                Maybe.map (List.singleton << Items.drawTileTooltip) model.hoveredTile)
+            ++ (Maybe.withDefault [] <|
+                    Maybe.map
+                        (List.singleton << Items.drawPieceTooltip)
+                        model.hoveredPiece)
+    else
+        div [] []
 
 viewLeftPane : Model -> Html Msg
 viewLeftPane model =
     div
         [ style "border" "0.8em double black"
         , style "background-color" "white"
-        , style "height" "95vh"
+        --, style "height" "90vh"
         , style "width" "45vw"
+        , style "margin" "1vw"
         ] 
         [ div [ style "height" "6.5em"
               , style "display" "flex"
@@ -409,8 +476,8 @@ viewLeftPane model =
                 model.tiles
         , div [style "display" "flex", style "gap" "5px", style "flex-wrap" "wrap"]
             <| List.map
-                (Html.map CraftingMsg
-                     << Html.map Crafting.DragMsg
+                (Html.map DragMsg
+                     --<< Html.map Crafting.DragMsg
                      << Items.drawEssence Items.DragFromHandStart) model.essences
         , Html.map CraftingMsg <| Crafting.viewCraftingTable model.craftingTable
         ]
@@ -438,4 +505,52 @@ viewRightPane model =
         (List.map (Board.drawRowReq model.board) [0,1,2,3]) ++
         (List.map (Board.drawColReq model.board) [0,1,2,3])
 
-        
+viewRewards : Model -> Html Msg
+viewRewards model =
+    case model.rewards of
+        Just rewards ->
+            div [ style "position" "fixed"
+                , style "top" "50%"
+                , style "left" "50%"
+                , style "z-index" "10"
+                , style "background-color" "grey"
+                , style "transform" "translate(-50%, -50%)"
+                ]
+                [ div [] <| List.map (drawTileIconReward model.selectedReward) rewards.tiles
+                , div [ style "display" "flex" ]
+                    <| List.map (Items.drawEssenceIcon >> (div [class "tile"])) rewards.essences
+                , div [ style "display" "flex"]
+                    <| List.map
+                          (\(scrl, quant) ->
+                               div []
+                                   [ text <|
+                                         Crafting.scrollToText scrl ++ ": " ++ String.fromInt quant
+                                   ]
+                          )
+                          rewards.scrolls
+                , div [ style "display" "flex"]
+                    <| List.map
+                           (\(orb, quant) ->
+                                div []
+                                    [ Items.drawColorCircle orb
+                                    , text <| ": " ++ String.fromInt quant
+                                    ]
+                           )
+                           rewards.orbs
+                , button [Events.onClick RewardConfirmed]
+                    [text "Confirm"]
+                ]
+        Nothing ->
+            div [] []
+
+drawTileIconReward : Maybe Items.Tile -> Items.Tile -> Html Msg
+drawTileIconReward selectedTile tile =
+    div [ style "display" "inline-block"
+        , class "tile"
+        , Events.onClick (RewardSelected tile)
+        , style "border"
+            <| if Just tile == selectedTile then "2px solid black" else "none"
+        ] <| 
+        [ Items.drawTileIconSvg tile
+        , div [ class "tooltip" ] [ Items.drawTileTooltip tile ]
+        ]

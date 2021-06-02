@@ -8,11 +8,12 @@ import Array
 import List.Extra
 
 import Board exposing ( Board, Field(..), ScoreDict)
-import Items exposing(Piece, Shape(..), Color(..), Tile, emptyScore, Property)
+import Items exposing(Piece, Shape(..), Color(..), Tile, emptyScore, Property, Essence)
 
 type alias State =
     { nextTileId : Int
     , nextPieceId : Int
+    , nextEssenceId : Int
     , level : Int
     }
 
@@ -20,6 +21,7 @@ init : State
 init =
     { nextTileId = 0
     , nextPieceId = 0
+    , nextEssenceId = 0
     , level = 1
     }
     
@@ -455,3 +457,127 @@ addProperty level blockedColors tile =
     Random.map
         (\prop -> { tile | properties = prop :: tile.properties })
         <| generateProperty level blockedColors
+
+--ESSENCE
+
+distillEssence : State -> List Color -> Tile -> Maybe (Random.Generator (State, Tile, Essence))
+distillEssence state blockedColors tile =
+    case tile.properties of
+        [ prop1 ] ->
+            Just <| 
+                Random.constant
+                    ( { state | nextEssenceId = state.nextEssenceId + 1 }
+                    , { tile | properties = [] }
+                    , { property = prop1, id = state.nextEssenceId }
+                    )
+        [ prop1, prop2 ] ->
+            Just <|
+                let prop1Chance = if List.member prop2.reqColor blockedColors then 75 else 50
+                    prop2Chance = if List.member prop1.reqColor blockedColors then 75 else 50
+                    distill prop =
+                        ( { state | nextEssenceId = state.nextEssenceId + 1 }
+                        , { tile | properties = [] }
+                        , { property = prop, id = state.nextEssenceId }
+                        )
+                in  Random.map distill <| Random.weighted (prop1Chance, prop1) [(prop2Chance, prop2)]
+        _ ->
+            Nothing
+
+generateEssence : Color -> State -> Random.Generator (State, Essence)
+generateEssence color state =
+    Random.map
+    (\pr -> ( { state | nextEssenceId = state.nextEssenceId + 1 }
+            , { id = state.nextEssenceId, property = pr }
+            )
+    )
+    <| generateProperty state.level (List.filter ((/=) color) [Purple, Green, Yellow, Orange])
+     
+--REWARD
+        
+generateOrbRewards : Items.Score -> Random.Generator Items.Score
+generateOrbRewards =
+    Random.Extra.traverse
+        (\(color, value) ->
+             Random.map (Tuple.pair color)
+                 <| Random.weighted (toFloat value, 1) [((100 - toFloat value), 0)]
+        )          
+    
+generateScrollRewards : Items.Score -> Random.Generator (List (Items.Scroll, Int))
+generateScrollRewards score =
+    let scrollNumRaw = 0.1 * (toFloat <| List.foldr ((+) << Tuple.second) 0 score)
+        scrollNum = Random.map ((+) (floor scrollNumRaw))
+                    <| pRound (scrollNumRaw - (toFloat << floor) scrollNumRaw)
+        gatherWeight weights = toFloat <| List.sum <| List.map2 (\w (c,v) -> w * v) weights score
+        generateScroll =
+            Random.weighted (gatherWeight [4,3,2,1], Items.Modification)
+                [ (gatherWeight [1,4,3,2], Items.Augmentation)
+                , (gatherWeight [2,1,4,3], Items.Alteration)
+                , (gatherWeight [3,2,1,4], Items.Distillation)
+                ]
+            
+    in Random.andThen
+        (\num ->
+             Random.map (List.map (Tuple.mapSecond ((+) 1 << List.length )) << List.Extra.gatherEquals)
+                 <| Random.list num generateScroll
+        )
+        scrollNum
+
+generateEssenceReward : Items.Score -> State -> Random.Generator (State, List Items.Essence)
+generateEssenceReward score state =
+    let generateEssenceP col weight st =
+            Random.map2
+            (\isGenerated (newState, essence) ->
+                 if isGenerated then
+                     (newState, [essence])
+                 else
+                     (st, [])
+            )
+            (Random.weighted (weight, True) [(100 - weight, False)])
+            (generateEssence col st)
+
+        go remScore rStateList =
+            case remScore of
+                [] ->
+                    rStateList
+                (nextCol, nextVal) :: cs ->
+                    rStateList
+                        |> Random.andThen
+                           (generateEssenceP nextCol (toFloat nextVal) << Tuple.first)
+                        |> Random.map2
+                            (\(_,list) (nextState, nextEssence) ->
+                                 (nextState, nextEssence ++ list))
+                            rStateList
+                        |> go cs
+    in go score <| Random.constant (state, [])
+
+type alias Reward =
+    { tiles : List Items.Tile
+    , scrolls : List (Items.Scroll, Int)
+    , orbs : Items.Score
+    , essences : List Items.Essence
+    }
+
+generateReward : Items.Score -> State -> Random.Generator (State, Reward)
+generateReward score state =
+    let baseReward =
+            Random.map2
+                (\ scrolls orbs ->
+                     { tiles = []
+                     , scrolls = scrolls
+                     , orbs = orbs
+                     , essences = []
+                     }
+                )
+                ( generateScrollRewards score)
+                ( generateOrbRewards score)
+    in Random.andThen
+        (\(upState, essences) ->
+             Random.map2
+                 (\(finalState, tiles) reward ->
+                      (finalState, { reward | tiles = tiles, essences = essences })
+                 )
+             (generateTileList 3 upState)
+             baseReward
+        )
+        <| generateEssenceReward score state
+    

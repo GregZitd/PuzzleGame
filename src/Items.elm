@@ -22,6 +22,16 @@ emptyScore : Score
 emptyScore =
     [ (Purple, 0) , (Green, 0) , (Yellow, 0) , (Orange, 0) ]
 
+addScores : Score -> Score -> Score
+addScores sc1 sc2 =
+    List.map2 (\(c1,v1) (_,v2) -> (c1, v1 + v2)) sc1 sc2
+    
+type Scroll
+    = Modification
+    | Augmentation
+    | Alteration
+    | Distillation
+
 --DRAG
 
 type Drag
@@ -35,33 +45,30 @@ type Msg
     | DragFromBoardStart Index
     | DragFromBenchStart Drag
     | DragOverField Index
-    | DragOverBench
     | DragLeave
     | DragDrop
 
-mapDragPiece : (Piece -> Piece) -> Drag -> Drag
-mapDragPiece f drag =
-    case drag of
-        DragPiece piece ->
-            DragPiece (f piece)
-        _ -> drag
-
-mapDragTile : (Tile -> Tile) -> Drag -> Drag
-mapDragTile f drag =
-    case drag of
-        DragTile tile ->
-            DragTile (f tile)
-        _ -> drag
-
 rotateDragRight : Drag -> Drag
 rotateDragRight drag =
-    mapDragTile rotateTileRight drag
-        |> mapDragPiece rotatePieceRight
-
+    case drag of
+        DragPiece piece ->
+            DragPiece <| rotatePieceRight piece
+        DragTile tile ->
+            DragTile <| rotateTileRight tile
+        DragEssence essence ->
+            DragEssence <| rotateEssenceRight essence
+        None -> None
+    
 rotateDragLeft : Drag -> Drag
 rotateDragLeft drag =
-    mapDragTile rotateTileLeft drag
-        |> mapDragPiece rotatePieceLeft
+    case drag of
+        DragPiece piece ->
+            DragPiece <| rotatePieceLeft piece
+        DragTile tile ->
+            DragTile <| rotateTileLeft tile
+        DragEssence essence ->
+            DragEssence <| rotateEssenceLeft essence
+        None -> None
 
 indexDrag : Maybe Index -> Drag -> Drag
 indexDrag index drag =
@@ -70,7 +77,9 @@ indexDrag index drag =
             DragPiece (newDrawPosition index piece)
         DragTile tile ->
             DragTile { tile | drawPosition = index } 
-        _ -> None
+        DragEssence essence ->
+            DragEssence essence
+        None -> None
 
 getDragId : Drag -> Int
 getDragId drag =
@@ -135,8 +144,6 @@ fourzStartIndex = [(0,0), (-1,0), (0,1), (1,1)]
 fourlStartIndex : List Index
 fourlStartIndex = [(0,0), (0,-1), (0,1), (1,1)]
 
---type alias PieceDict = Dict Int Piece
-
 newDrawPosition : Maybe Index -> Piece -> Piece
 newDrawPosition mIndex piece =
     case mIndex of
@@ -160,16 +167,6 @@ newShape shape piece =
             in { piece | shape = shape, positions = positions }
         Nothing ->
             { piece | shape = shape }
-
--- addToPieceDict : Piece -> PieceDict -> (Int, PieceDict)
--- addToPieceDict piece dict =
---     let keys = Dict.keys dict
---         newKey =
---             Maybe.withDefault 0
---                 <| List.head
---                     << List.filter (\n -> not <| List.member n keys)
---                     <| (List.range 0 <| List.length keys)
---     in (newKey, Dict.insert newKey piece dict)
 
 calculateIndexes : Piece -> Maybe (List Index)
 calculateIndexes piece =
@@ -383,19 +380,6 @@ rotateTileLeft : Tile -> Tile
 rotateTileLeft tile =
     { tile | properties = List.map rotatePropertyLeft tile.properties }
 
--- type alias TileDict = Dict Int Tile
-
--- addToTileDict : Tile -> TileDict -> TileDict
--- addToTileDict tile dict =
---     let keys = Dict.keys dict
---         newKey =
---             Maybe.withDefault 0
---                 <| List.head
---                     << List.filter (\n -> not <| List.member n keys)
---                     <| (List.range 0 <| List.length keys)
---     in Dict.insert newKey { tile | drawPosition = Nothing } dict
-
-
 colorToString : Color -> String
 colorToString color =
     case color of
@@ -414,16 +398,18 @@ drawTileIcon showTooltip tile =
         , div [ Attributes.class "tooltip" ] [ drawTileTooltip tile ]
         ]
 
+
 drawTileTooltip : Tile -> Html msg
 drawTileTooltip tile =
     div 
         [ Attributes.style "background-color" "yellow"
         , Attributes.style "font-size" "1.4rem"
         , Attributes.style "width" "max-content"
-        ] <| if List.isEmpty tile.properties then [p [] [text "No properties"]] else
-        List.map
-              (\pr -> drawProperty (tile.drawPosition /= Nothing) pr)
-              tile.properties
+        ] <|
+        [ p [] [ text <| "Base value: " ++ String.fromInt tile.baseValue ] ] ++
+            List.map
+                  (\pr -> drawProperty (tile.drawPosition /= Nothing) pr)
+                  tile.properties
 
 drawTileIconSvg : Tile -> Svg.Svg msg
 drawTileIconSvg tile =
@@ -532,11 +518,23 @@ type alias Essence =
     , property : Property
     }
 
+rotateEssenceRight : Essence -> Essence
+rotateEssenceRight essence =
+    { essence | property = rotatePropertyRight essence.property }
+
+rotateEssenceLeft : Essence -> Essence
+rotateEssenceLeft essence =
+    { essence | property = rotatePropertyLeft essence.property }
+
 drawEssence : (Drag -> Msg) -> Essence -> Html Msg
 drawEssence dragMsg essence =
     div [ Attributes.class "tile"
         , Events.onMouseDown <| dragMsg (DragEssence essence)
         ]
+        <| drawEssenceIcon essence
+
+drawEssenceIcon : Essence -> List (Html msg)
+drawEssenceIcon essence =
         [ Svg.svg
             [ Svga.viewBox "0 0 50 50"
             , Svga.x "0"

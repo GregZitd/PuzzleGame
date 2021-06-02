@@ -21,6 +21,7 @@ type BoardErr
     | CannotInsertPieceDrawPositionNothing
     | CannotInsertTileDrawPositionNothing
     | CannotFindIndexByPiece
+    | CannotInsertNonTileOrPiece
 
 type alias Board =
     { tiles : BoardTiles
@@ -32,7 +33,7 @@ type alias Board =
 
 type alias BoardTiles = Array (Array Field)
 
-type alias ScoreDict = Dict Int (Score, Score)
+type alias ScoreDict = Dict Int (Score, Score) --(Req, Score)
       
 drawRowReq : Board -> Int -> Html msg
 drawRowReq board index =
@@ -188,7 +189,7 @@ insertDrag board drag =
             insertPiece piece board
         DragTile tile ->
             insertTile tile board
-        _ -> Ok board
+        _ -> Err CannotInsertNonTileOrPiece
                      
 drawBoard : Board -> Html Msg
 drawBoard board =
@@ -197,6 +198,16 @@ drawBoard board =
        ] <|
        (List.map drawPieceBorder board.pieces) ++
        (List.concat << toList) (indexedMap drawField board.tiles) 
+
+gatherAllTiles : Board -> List Tile
+gatherAllTiles board =
+    List.filterMap
+        (\field ->
+             case field of
+                 Filled _ tile _ -> Just tile
+                 _ -> Nothing
+        )
+        <| List.concat <| toList board.tiles
 
 --SCORE
 
@@ -242,19 +253,29 @@ calculateColScore board index =
               board.colReqs
     }
 
--- isScoreLower : Score -> Score -> Bool
--- isScoreLower score req =
---     List.map2 (<)
---         (List.map Tuple.second score)
---         (List.map Tuple.second req)
---         |> List.all (\a -> a)
+allReqMet : Board -> Bool
+allReqMet board =
+    let rowsMet = List.all identity <| List.map isReqMet <| Dict.values board.rowReqs
+        colsMet = List.all identity <| List.map isReqMet <| Dict.values board.colReqs
+        piecesMet =
+            List.all identity
+                <| List.map (\piece -> isReqMet (piece.req, piece.score)) board.pieces
+    in rowsMet && colsMet && piecesMet
 
--- isScoreHigher : Score -> Score -> Bool
--- isScoreHigher score req =
---     List.map2 (>)
---         (List.map Tuple.second score)
---         (List.map Tuple.second req)
---         |> List.all (\a -> a) 
+isReqMet : (Score, Score) -> Bool
+isReqMet (req, score) =
+    List.map2 (>=)
+        (List.map Tuple.second score)
+        (List.map Tuple.second req)
+        |> List.all identity
+    
+countTotalReq : Board -> Score
+countTotalReq board =
+    List.foldr Items.addScores Items.emptyScore
+        <| (List.map Tuple.first <| Dict.values board.colReqs)
+        ++ (List.map Tuple.first <| Dict.values board.rowReqs)
+        ++ (List.map .req) board.pieces
+                          
 
 --FIELD
 

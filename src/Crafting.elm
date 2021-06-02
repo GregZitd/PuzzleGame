@@ -10,15 +10,9 @@ import Svg.Attributes as Svga
 import Json.Decode as Decode
 
 import Board  
-import Items exposing (Essence, Color(..))
+import Items exposing (Essence, Color(..), Scroll(..))
 import ProcGen
---import Demo
 
-type Scroll
-    = Modification
-    | Augmentation
-    | Alteration
-    | Distillation
 
 scrollToText : Scroll -> String
 scrollToText scroll =
@@ -44,7 +38,6 @@ type alias TableState =
 type alias Model a =
     { a |
       craftingTable : TableState
-    , craftingBenchHovered : Bool
     , procGenState : ProcGen.State
     , dragedItem : Items.Drag
 
@@ -57,11 +50,11 @@ type Msg
     = ApplyScroll
     | ScrollSelected Scroll
     | OrbSelected Orb
-    -- | DragOverBench
-    -- | DragLeave
-    -- | DragStart Items.Drag
     | TileGenerated Items.Tile
+    | EssenceDistilled (ProcGen.State, Items.Tile, Items.Essence)
     | DragMsg Items.Msg
+    | ApplyEssence
+
 updateModel : Model a -> TableState -> Model a
 updateModel model state =
     { model | craftingTable = state }
@@ -79,7 +72,8 @@ update msg model =
                            , Random.generate TileGenerated
                                   <| ProcGen.generateBase
                                       model.procGenState.level
-                                      model.craftingTable.selectedOrbs tile
+                                      model.craftingTable.selectedOrbs
+                                      tile
                            )
                         Err _ ->
                             (model, Cmd.none)
@@ -92,7 +86,8 @@ update msg model =
                                 , Random.generate TileGenerated
                                        <| ProcGen.addProperty
                                            model.procGenState.level
-                                           model.craftingTable.selectedOrbs tile
+                                           model.craftingTable.selectedOrbs
+                                           tile
                                 )
                             else
                                 (model, Cmd.none)
@@ -106,16 +101,60 @@ update msg model =
                             , Random.generate TileGenerated
                                    <| ProcGen.rerollProperties
                                        model.procGenState.level
-                                       model.craftingTable.selectedOrbs tile
+                                       model.craftingTable.selectedOrbs
+                                       tile
                             )
                         Err _ ->
                             (model, Cmd.none)
                                 
-                _ -> 
+                Just Distillation -> 
+                    case basicReqMet Distillation model.craftingTable of
+                        Ok tile ->
+                            if List.length tile.properties > 0 then
+                                ( updateModel model <| removeMats Distillation model.craftingTable
+                                , Maybe.withDefault Cmd.none
+                                    <| Maybe.map (Random.generate EssenceDistilled)
+                                        <| ProcGen.distillEssence
+                                            model.procGenState
+                                            model.craftingTable.selectedOrbs
+                                            tile
+                                )
+                            else
+                                (model, Cmd.none)
+                        Err _ ->
+                            (model, Cmd.none)
+
+                Nothing ->
                     (model, Cmd.none)
 
+        ApplyEssence ->
+            case craftingTable.tile of
+                Just tile ->
+                    case craftingTable.selectedEssence of
+                        Just essence ->
+                            if List.length tile.properties == 0 then
+                                let newTile = { tile | properties = [essence.property] }
+                                in ( updateModel model
+                                         <| { craftingTable | tile = Just newTile
+                                            , selectedEssence = Nothing }
+                                   , Cmd.none
+                                   )
+                                else
+                                   (model, Cmd.none) 
+                        Nothing ->
+                            (model, Cmd.none)
+                Nothing -> 
+                    (model, Cmd.none)
+                        
         TileGenerated tile ->
             ( updateModel model { craftingTable | tile = Just tile }, Cmd.none )
+
+        EssenceDistilled (newRandState, newTile, newEssence) ->
+            ( { model | procGenState = newRandState
+              , craftingTable =
+                  { craftingTable | tile = Just newTile, selectedEssence = Just newEssence }
+              }, Cmd.none
+            )
 
         ScrollSelected scroll ->
             if Just scroll == model.craftingTable.selectedScroll then
@@ -144,27 +183,30 @@ update msg model =
                           , dragedItem = drag
                       }, Cmd.none
                     )
-                Items.DragOverBench ->
-                    ( { model | craftingBenchHovered = True }, Cmd.none )
-                Items.DragLeave ->
-                    ( { model | craftingBenchHovered = False }, Cmd.none )
+                -- Items.DragOverBench ->
+                --     ( { model | craftingBenchHovered = True }, Cmd.none )
+                -- Items.DragLeave ->
+                --     ( { model | craftingBenchHovered = False }, Cmd.none )
                 Items.DragDrop ->
                     case model.dragedItem of
                         Items.DragPiece piece ->
-                            ( { model | pieces = piece :: model.pieces }, Cmd.none )
+                            ( { model | pieces = piece :: model.pieces, dragedItem = Items.None }
+                            , Cmd.none )
                         Items.DragTile tile ->
                             if craftingTable.tile == Nothing then
                                 let droppedTile = { craftingTable | tile = Just tile }
-                                in ( { model | craftingTable = droppedTile }, Cmd.none )
+                                in ( { model | craftingTable = droppedTile, dragedItem = Items.None }
+                                   , Cmd.none )
                             else
-                                ( { model | tiles = tile :: model.tiles }, Cmd.none )
+                                ( { model | tiles = tile :: model.tiles, dragedItem = Items.None }
+                                , Cmd.none )
                         Items.DragEssence essence ->
                             if craftingTable.selectedEssence == Nothing then
                                 let droppedEssence =
-                                        { craftingTable | selectedEssence = Just essence }
-                                in ( { model | craftingTable = droppedEssence }, Cmd.none )
+                                        { craftingTable | selectedEssence = Just essence } 
+                                in ( { model | craftingTable = droppedEssence, dragedItem = Items.None }, Cmd.none )
                             else
-                                ( { model | essences = essence :: model.essences }, Cmd.none )
+                                ( { model | essences = essence :: model.essences, dragedItem = Items.None }, Cmd.none )
                         Items.None ->
                             ( model, Cmd.none )
                 _ ->
@@ -179,17 +221,48 @@ removeDragFromBench state drag =
             { state | selectedEssence = Nothing }
         _ ->
             state
+
+addCraftingMats : TableState -> List (Scroll, Int) -> Items.Score -> TableState
+addCraftingMats state scrolls orbs =
+    { state
+          | orbs = Items.addScores orbs state.orbs
+          , scrolls = 
+              List.foldr
+                  (\(scrl, quant) hand ->
+                       List.Extra.updateIf
+                           ((==) scrl << Tuple.first)
+                           (Tuple.mapSecond ((+) quant))
+                           hand
+                  )
+                  state.scrolls
+                  scrolls
+              -- List.map2 (\(sc,num1) (_,num2) -> (sc, num1 + num2))
+              --     state.scrolls scrolls
+    }
     
 init : TableState
 init =
     { tile = Nothing
     , scrolls = demoScrolls
     , orbs = demoOrbs
-    , selectedScroll = Just Augmentation
+    , selectedScroll = Nothing
     , selectedOrbs = []
     , selectedEssence = Nothing
     }
 
+probaEssence : Items.Essence
+probaEssence =
+    { id = 0
+    , property =
+        { reqColor = Green
+        , region = [(1,0), (1,-1)]
+        , reqValue = 2
+        , prodBonus = 0
+        , addBonus = 1
+        , isMet = False
+        }
+    }
+    
 demoScrolls : List (Scroll, Int)
 demoScrolls =
     [(Modification, 5), (Augmentation, 5), (Alteration, 5), (Distillation, 5)]
@@ -198,22 +271,6 @@ demoOrbs : List (Orb, Int)
 demoOrbs =
     [(Purple, 5), (Green, 5), (Yellow, 5), (Orange, 5)]
         
--- type CraftingErr
---     = CannotDropCraftingBenchOccupied
---     | CannotDropPiece
-
--- dropDrag : Items.Drag -> TableState -> Result CraftingErr TableState
--- dropDrag drag state =
---     case drag of
---         Items.DragTile tile ->
---             case state.tile of
---                 Nothing ->
---                     Ok { state | tile = Just tile }
---                 Just _ ->
---                     Err CannotDropCraftingBenchOccupied
---         _ ->
---             Err CannotDropPiece
-
 emptyScrolls : List (Scroll, Int)
 emptyScrolls =
     [(Modification, 0), (Augmentation, 0), (Alteration, 0), (Distillation, 0)]
@@ -262,9 +319,8 @@ noCmd _ = Cmd.none
 viewCraftingTable : TableState -> Html Msg 
 viewCraftingTable state =
     div []
-        [ button
-              [Events.onClick ApplyScroll]
-              [text "Apply Scroll"]
+        [ button [Events.onClick ApplyScroll] [text "Apply Scroll"]
+        , button [Events.onClick ApplyEssence] [text "Apply Essence"]
         , div
             [ style "display" "flex"
             , style "gap" "5px"
@@ -285,8 +341,8 @@ viewTileBench tile essence =
         , style "flex-direction" "column"
         , style "justify-content" "center"
         , style "align-items" "center"
-        , Events.onMouseEnter <| DragMsg Items.DragOverBench
-        , Events.onMouseLeave <| DragMsg Items.DragLeave
+        -- , Events.onMouseEnter <| DragMsg Items.DragOverBench
+        -- , Events.onMouseLeave <| DragMsg Items.DragLeave
         , Events.stopPropagationOn "mouseup" <| Decode.succeed (DragMsg Items.DragDrop, True)
         ]
         [ drawTileIcon tile

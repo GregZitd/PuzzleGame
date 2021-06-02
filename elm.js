@@ -6996,7 +6996,6 @@ var $author$project$ProcGen$generateTileList = F2(
 			$elm$random$Random$constant(
 				_Utils_Tuple2(state, _List_Nil)));
 	});
-var $author$project$Crafting$Augmentation = {$: 'Augmentation'};
 var $author$project$Crafting$demoOrbs = _List_fromArray(
 	[
 		_Utils_Tuple2($author$project$Items$Purple, 5),
@@ -7004,31 +7003,25 @@ var $author$project$Crafting$demoOrbs = _List_fromArray(
 		_Utils_Tuple2($author$project$Items$Yellow, 5),
 		_Utils_Tuple2($author$project$Items$Orange, 5)
 	]);
-var $author$project$Crafting$Alteration = {$: 'Alteration'};
-var $author$project$Crafting$Distillation = {$: 'Distillation'};
-var $author$project$Crafting$Modification = {$: 'Modification'};
+var $author$project$Items$Alteration = {$: 'Alteration'};
+var $author$project$Items$Augmentation = {$: 'Augmentation'};
+var $author$project$Items$Distillation = {$: 'Distillation'};
+var $author$project$Items$Modification = {$: 'Modification'};
 var $author$project$Crafting$demoScrolls = _List_fromArray(
 	[
-		_Utils_Tuple2($author$project$Crafting$Modification, 5),
-		_Utils_Tuple2($author$project$Crafting$Augmentation, 5),
-		_Utils_Tuple2($author$project$Crafting$Alteration, 5),
-		_Utils_Tuple2($author$project$Crafting$Distillation, 5)
+		_Utils_Tuple2($author$project$Items$Modification, 5),
+		_Utils_Tuple2($author$project$Items$Augmentation, 5),
+		_Utils_Tuple2($author$project$Items$Alteration, 5),
+		_Utils_Tuple2($author$project$Items$Distillation, 5)
 	]);
-var $author$project$Crafting$init = {
-	orbs: $author$project$Crafting$demoOrbs,
-	scrolls: $author$project$Crafting$demoScrolls,
-	selectedEssence: $elm$core$Maybe$Nothing,
-	selectedOrbs: _List_Nil,
-	selectedScroll: $elm$core$Maybe$Just($author$project$Crafting$Augmentation),
-	tile: $elm$core$Maybe$Nothing
-};
-var $author$project$ProcGen$init = {level: 1, nextPieceId: 0, nextTileId: 0};
+var $author$project$Crafting$init = {orbs: $author$project$Crafting$demoOrbs, scrolls: $author$project$Crafting$demoScrolls, selectedEssence: $elm$core$Maybe$Nothing, selectedOrbs: _List_Nil, selectedScroll: $elm$core$Maybe$Nothing, tile: $elm$core$Maybe$Nothing};
+var $author$project$ProcGen$init = {level: 1, nextEssenceId: 0, nextPieceId: 0, nextTileId: 0};
 var $author$project$Main$noBoard = {colReqs: $elm$core$Dict$empty, highlight: _List_Nil, pieces: _List_Nil, rowReqs: $elm$core$Dict$empty, tiles: $elm$core$Array$empty};
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
 		{
+			allReqMet: false,
 			board: $author$project$Main$noBoard,
-			craftingBenchHovered: false,
 			craftingTable: $author$project$Crafting$init,
 			dragedItem: $author$project$Items$None,
 			essences: _List_Nil,
@@ -7037,6 +7030,8 @@ var $author$project$Main$init = function (_v0) {
 			mousePos: _Utils_Tuple2(0, 0),
 			pieces: _List_Nil,
 			procGenState: $author$project$ProcGen$init,
+			rewards: $elm$core$Maybe$Nothing,
+			selectedReward: $elm$core$Maybe$Nothing,
 			showTileTooltip: false,
 			tiles: _List_Nil
 		},
@@ -7046,7 +7041,7 @@ var $author$project$Main$init = function (_v0) {
 					A2(
 					$elm$random$Random$generate,
 					$author$project$Main$NewBoard,
-					$author$project$ProcGen$generateBoard(2)),
+					$author$project$ProcGen$generateBoard($author$project$ProcGen$init.level)),
 					A2(
 					$elm$random$Random$generate,
 					$author$project$Main$NewPieceList,
@@ -7428,11 +7423,429 @@ var $author$project$Main$subscriptions = function (model) {
 var $author$project$Main$CraftingMsg = function (a) {
 	return {$: 'CraftingMsg', a: a};
 };
+var $author$project$Main$RewardsGenerated = function (a) {
+	return {$: 'RewardsGenerated', a: a};
+};
+var $author$project$Items$addScores = F2(
+	function (sc1, sc2) {
+		return A3(
+			$elm$core$List$map2,
+			F2(
+				function (_v0, _v1) {
+					var c1 = _v0.a;
+					var v1 = _v0.b;
+					var v2 = _v1.b;
+					return _Utils_Tuple2(c1, v1 + v2);
+				}),
+			sc1,
+			sc2);
+	});
+var $author$project$Crafting$addCraftingMats = F3(
+	function (state, scrolls, orbs) {
+		return _Utils_update(
+			state,
+			{
+				orbs: A2($author$project$Items$addScores, orbs, state.orbs),
+				scrolls: A3(
+					$elm$core$List$foldr,
+					F2(
+						function (_v0, hand) {
+							var scrl = _v0.a;
+							var quant = _v0.b;
+							return A3(
+								$elm_community$list_extra$List$Extra$updateIf,
+								A2(
+									$elm$core$Basics$composeL,
+									$elm$core$Basics$eq(scrl),
+									$elm$core$Tuple$first),
+								$elm$core$Tuple$mapSecond(
+									$elm$core$Basics$add(quant)),
+								hand);
+						}),
+					state.scrolls,
+					scrolls)
+			});
+	});
+var $elm$core$Dict$values = function (dict) {
+	return A3(
+		$elm$core$Dict$foldr,
+		F3(
+			function (key, value, valueList) {
+				return A2($elm$core$List$cons, value, valueList);
+			}),
+		_List_Nil,
+		dict);
+};
+var $author$project$Board$countTotalReq = function (board) {
+	return A3(
+		$elm$core$List$foldr,
+		$author$project$Items$addScores,
+		$author$project$Items$emptyScore,
+		_Utils_ap(
+			A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$first,
+				$elm$core$Dict$values(board.colReqs)),
+			_Utils_ap(
+				A2(
+					$elm$core$List$map,
+					$elm$core$Tuple$first,
+					$elm$core$Dict$values(board.rowReqs)),
+				$elm$core$List$map(
+					function ($) {
+						return $.req;
+					})(board.pieces))));
+};
+var $elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
+		}
+	});
+var $elm$core$List$concat = function (lists) {
+	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
+};
+var $elm$core$Elm$JsArray$map = _JsArray_map;
+var $elm$core$Array$map = F2(
+	function (func, _v0) {
+		var len = _v0.a;
+		var startShift = _v0.b;
+		var tree = _v0.c;
+		var tail = _v0.d;
+		var helper = function (node) {
+			if (node.$ === 'SubTree') {
+				var subTree = node.a;
+				return $elm$core$Array$SubTree(
+					A2($elm$core$Elm$JsArray$map, helper, subTree));
+			} else {
+				var values = node.a;
+				return $elm$core$Array$Leaf(
+					A2($elm$core$Elm$JsArray$map, func, values));
+			}
+		};
+		return A4(
+			$elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			A2($elm$core$Elm$JsArray$map, helper, tree),
+			A2($elm$core$Elm$JsArray$map, func, tail));
+	});
+var $author$project$Board$toList = function (array) {
+	return $elm$core$Array$toList(
+		A2($elm$core$Array$map, $elm$core$Array$toList, array));
+};
+var $author$project$Board$gatherAllTiles = function (board) {
+	return A2(
+		$elm$core$List$filterMap,
+		function (field) {
+			if (field.$ === 'Filled') {
+				var tile = field.b;
+				return $elm$core$Maybe$Just(tile);
+			} else {
+				return $elm$core$Maybe$Nothing;
+			}
+		},
+		$elm$core$List$concat(
+			$author$project$Board$toList(board.tiles)));
+};
+var $author$project$ProcGen$generateEssence = F2(
+	function (color, state) {
+		return A2(
+			$elm$random$Random$map,
+			function (pr) {
+				return _Utils_Tuple2(
+					_Utils_update(
+						state,
+						{nextEssenceId: state.nextEssenceId + 1}),
+					{id: state.nextEssenceId, property: pr});
+			},
+			A2(
+				$author$project$ProcGen$generateProperty,
+				state.level,
+				A2(
+					$elm$core$List$filter,
+					$elm$core$Basics$neq(color),
+					_List_fromArray(
+						[$author$project$Items$Purple, $author$project$Items$Green, $author$project$Items$Yellow, $author$project$Items$Orange]))));
+	});
+var $author$project$ProcGen$generateEssenceReward = F2(
+	function (score, state) {
+		var generateEssenceP = F3(
+			function (col, weight, st) {
+				return A3(
+					$elm$random$Random$map2,
+					F2(
+						function (isGenerated, _v4) {
+							var newState = _v4.a;
+							var essence = _v4.b;
+							return isGenerated ? _Utils_Tuple2(
+								newState,
+								_List_fromArray(
+									[essence])) : _Utils_Tuple2(st, _List_Nil);
+						}),
+					A2(
+						$elm$random$Random$weighted,
+						_Utils_Tuple2(weight, true),
+						_List_fromArray(
+							[
+								_Utils_Tuple2(100 - weight, false)
+							])),
+					A2($author$project$ProcGen$generateEssence, col, st));
+			});
+		var go = F2(
+			function (remScore, rStateList) {
+				if (!remScore.b) {
+					return rStateList;
+				} else {
+					var _v1 = remScore.a;
+					var nextCol = _v1.a;
+					var nextVal = _v1.b;
+					var cs = remScore.b;
+					return A2(
+						go,
+						cs,
+						A3(
+							$elm$random$Random$map2,
+							F2(
+								function (_v2, _v3) {
+									var list = _v2.b;
+									var nextState = _v3.a;
+									var nextEssence = _v3.b;
+									return _Utils_Tuple2(
+										nextState,
+										_Utils_ap(nextEssence, list));
+								}),
+							rStateList,
+							A2(
+								$elm$random$Random$andThen,
+								A2(
+									$elm$core$Basics$composeL,
+									A2(generateEssenceP, nextCol, nextVal),
+									$elm$core$Tuple$first),
+								rStateList)));
+				}
+			});
+		return A2(
+			go,
+			score,
+			$elm$random$Random$constant(
+				_Utils_Tuple2(state, _List_Nil)));
+	});
+var $author$project$ProcGen$generateOrbRewards = $elm_community$random_extra$Random$Extra$traverse(
+	function (_v0) {
+		var color = _v0.a;
+		var value = _v0.b;
+		return A2(
+			$elm$random$Random$map,
+			$elm$core$Tuple$pair(color),
+			A2(
+				$elm$random$Random$weighted,
+				_Utils_Tuple2(value, 1),
+				_List_fromArray(
+					[
+						_Utils_Tuple2(100 - value, 0)
+					])));
+	});
+var $elm$core$List$partition = F2(
+	function (pred, list) {
+		var step = F2(
+			function (x, _v0) {
+				var trues = _v0.a;
+				var falses = _v0.b;
+				return pred(x) ? _Utils_Tuple2(
+					A2($elm$core$List$cons, x, trues),
+					falses) : _Utils_Tuple2(
+					trues,
+					A2($elm$core$List$cons, x, falses));
+			});
+		return A3(
+			$elm$core$List$foldr,
+			step,
+			_Utils_Tuple2(_List_Nil, _List_Nil),
+			list);
+	});
+var $elm_community$list_extra$List$Extra$gatherWith = F2(
+	function (testFn, list) {
+		var helper = F2(
+			function (scattered, gathered) {
+				if (!scattered.b) {
+					return $elm$core$List$reverse(gathered);
+				} else {
+					var toGather = scattered.a;
+					var population = scattered.b;
+					var _v1 = A2(
+						$elm$core$List$partition,
+						testFn(toGather),
+						population);
+					var gathering = _v1.a;
+					var remaining = _v1.b;
+					return A2(
+						helper,
+						remaining,
+						A2(
+							$elm$core$List$cons,
+							_Utils_Tuple2(toGather, gathering),
+							gathered));
+				}
+			});
+		return A2(helper, list, _List_Nil);
+	});
+var $elm_community$list_extra$List$Extra$gatherEquals = function (list) {
+	return A2($elm_community$list_extra$List$Extra$gatherWith, $elm$core$Basics$eq, list);
+};
+var $author$project$ProcGen$generateScrollRewards = function (score) {
+	var scrollNumRaw = 0.1 * A3(
+		$elm$core$List$foldr,
+		A2($elm$core$Basics$composeL, $elm$core$Basics$add, $elm$core$Tuple$second),
+		0,
+		score);
+	var scrollNum = A2(
+		$elm$random$Random$map,
+		$elm$core$Basics$add(
+			$elm$core$Basics$floor(scrollNumRaw)),
+		$author$project$ProcGen$pRound(
+			scrollNumRaw - A2($elm$core$Basics$composeL, $elm$core$Basics$toFloat, $elm$core$Basics$floor)(scrollNumRaw)));
+	var gatherWeight = function (weights) {
+		return $elm$core$List$sum(
+			A3(
+				$elm$core$List$map2,
+				F2(
+					function (w, _v0) {
+						var c = _v0.a;
+						var v = _v0.b;
+						return w * v;
+					}),
+				weights,
+				score));
+	};
+	var generateScroll = A2(
+		$elm$random$Random$weighted,
+		_Utils_Tuple2(
+			gatherWeight(
+				_List_fromArray(
+					[4, 3, 2, 1])),
+			$author$project$Items$Modification),
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				gatherWeight(
+					_List_fromArray(
+						[1, 4, 3, 2])),
+				$author$project$Items$Augmentation),
+				_Utils_Tuple2(
+				gatherWeight(
+					_List_fromArray(
+						[2, 1, 4, 3])),
+				$author$project$Items$Alteration),
+				_Utils_Tuple2(
+				gatherWeight(
+					_List_fromArray(
+						[3, 2, 1, 4])),
+				$author$project$Items$Distillation)
+			]));
+	return A2(
+		$elm$random$Random$andThen,
+		function (num) {
+			return A2(
+				$elm$random$Random$map,
+				A2(
+					$elm$core$Basics$composeL,
+					$elm$core$List$map(
+						$elm$core$Tuple$mapSecond(
+							A2(
+								$elm$core$Basics$composeL,
+								$elm$core$Basics$add(1),
+								$elm$core$List$length))),
+					$elm_community$list_extra$List$Extra$gatherEquals),
+				A2($elm$random$Random$list, num, generateScroll));
+		},
+		scrollNum);
+};
+var $author$project$ProcGen$generateReward = F2(
+	function (score, state) {
+		var baseReward = A3(
+			$elm$random$Random$map2,
+			F2(
+				function (scrolls, orbs) {
+					return {essences: _List_Nil, orbs: orbs, scrolls: scrolls, tiles: _List_Nil};
+				}),
+			$author$project$ProcGen$generateScrollRewards(score),
+			$author$project$ProcGen$generateOrbRewards(score));
+		return A2(
+			$elm$random$Random$andThen,
+			function (_v0) {
+				var upState = _v0.a;
+				var essences = _v0.b;
+				return A3(
+					$elm$random$Random$map2,
+					F2(
+						function (_v1, reward) {
+							var finalState = _v1.a;
+							var tiles = _v1.b;
+							return _Utils_Tuple2(
+								finalState,
+								_Utils_update(
+									reward,
+									{essences: essences, tiles: tiles}));
+						}),
+					A2($author$project$ProcGen$generateTileList, 3, upState),
+					baseReward);
+			},
+			A2($author$project$ProcGen$generateEssenceReward, score, state));
+	});
 var $author$project$Items$DragPiece = function (a) {
 	return {$: 'DragPiece', a: a};
 };
 var $author$project$Items$DragTile = function (a) {
 	return {$: 'DragTile', a: a};
+};
+var $elm$core$List$all = F2(
+	function (isOkay, list) {
+		return !A2(
+			$elm$core$List$any,
+			A2($elm$core$Basics$composeL, $elm$core$Basics$not, isOkay),
+			list);
+	});
+var $author$project$Board$isReqMet = function (_v0) {
+	var req = _v0.a;
+	var score = _v0.b;
+	return A2(
+		$elm$core$List$all,
+		$elm$core$Basics$identity,
+		A3(
+			$elm$core$List$map2,
+			$elm$core$Basics$ge,
+			A2($elm$core$List$map, $elm$core$Tuple$second, score),
+			A2($elm$core$List$map, $elm$core$Tuple$second, req)));
+};
+var $author$project$Board$allReqMet = function (board) {
+	var rowsMet = A2(
+		$elm$core$List$all,
+		$elm$core$Basics$identity,
+		A2(
+			$elm$core$List$map,
+			$author$project$Board$isReqMet,
+			$elm$core$Dict$values(board.rowReqs)));
+	var piecesMet = A2(
+		$elm$core$List$all,
+		$elm$core$Basics$identity,
+		A2(
+			$elm$core$List$map,
+			function (piece) {
+				return $author$project$Board$isReqMet(
+					_Utils_Tuple2(piece.req, piece.score));
+			},
+			board.pieces));
+	var colsMet = A2(
+		$elm$core$List$all,
+		$elm$core$Basics$identity,
+		A2(
+			$elm$core$List$map,
+			$author$project$Board$isReqMet,
+			$elm$core$Dict$values(board.colReqs)));
+	return rowsMet && (colsMet && piecesMet);
 };
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Board$Empty = F2(
@@ -7533,6 +7946,13 @@ var $author$project$Main$dragEnd = F2(
 										{drawPosition: $elm$core$Maybe$Nothing, positions: _List_Nil}),
 									model.pieces)
 							});
+					case 'DragEssence':
+						var essence = _v0.a;
+						return _Utils_update(
+							model,
+							{
+								essences: A2($elm$core$List$cons, essence, model.essences)
+							});
 					default:
 						return model;
 				}
@@ -7570,6 +7990,9 @@ var $elm_community$list_extra$List$Extra$find = F2(
 			}
 		}
 	});
+var $author$project$Items$DragEssence = function (a) {
+	return {$: 'DragEssence', a: a};
+};
 var $elm$core$Tuple$mapBoth = F3(
 	function (funcA, funcB, _v0) {
 		var x = _v0.a;
@@ -7641,19 +8064,16 @@ var $author$project$Items$indexDrag = F2(
 					_Utils_update(
 						tile,
 						{drawPosition: index}));
+			case 'DragEssence':
+				var essence = drag.a;
+				return $author$project$Items$DragEssence(essence);
 			default:
 				return $author$project$Items$None;
 		}
 	});
+var $author$project$Board$CannotInsertNonTileOrPiece = {$: 'CannotInsertNonTileOrPiece'};
 var $author$project$Board$CannotAddPieceFieldIsOccupied = {$: 'CannotAddPieceFieldIsOccupied'};
 var $author$project$Board$CannotInsertPieceDrawPositionNothing = {$: 'CannotInsertPieceDrawPositionNothing'};
-var $elm$core$List$all = F2(
-	function (isOkay, list) {
-		return !A2(
-			$elm$core$List$any,
-			A2($elm$core$Basics$composeL, $elm$core$Basics$not, isOkay),
-			list);
-	});
 var $author$project$Board$insertPiece = F2(
 	function (piece, board) {
 		var canAdd = A2(
@@ -8435,7 +8855,7 @@ var $author$project$Board$insertDrag = F2(
 				var tile = drag.a;
 				return A2($author$project$Board$insertTile, tile, board);
 			default:
-				return $elm$core$Result$Ok(board);
+				return $elm$core$Result$Err($author$project$Board$CannotInsertNonTileOrPiece);
 		}
 	});
 var $author$project$Items$getDragId = function (drag) {
@@ -8798,7 +9218,11 @@ var $author$project$Main$handleDragMsg = F2(
 													A2($author$project$Items$translatePiece, index, piece))),
 											_Utils_update(
 												model,
-												{board: board, hoveredPiece: $elm$core$Maybe$Nothing})),
+												{
+													allReqMet: $author$project$Board$allReqMet(board),
+													board: board,
+													hoveredPiece: $elm$core$Maybe$Nothing
+												})),
 										$elm$core$Platform$Cmd$none);
 								} else {
 									var err = _v3.a;
@@ -8807,11 +9231,13 @@ var $author$project$Main$handleDragMsg = F2(
 							case 'Filled':
 								var _v5 = _v1.a;
 								var tile = _v5.b;
+								var newBoard = A2($author$project$Board$removeTile, index, model.board);
 								return _Utils_Tuple2(
 									_Utils_update(
 										model,
 										{
-											board: A2($author$project$Board$removeTile, index, model.board),
+											allReqMet: $author$project$Board$allReqMet(newBoard),
+											board: newBoard,
 											dragedItem: $author$project$Items$DragTile(tile),
 											hoveredTile: $elm$core$Maybe$Nothing
 										}),
@@ -8892,8 +9318,6 @@ var $author$project$Main$handleDragMsg = F2(
 				return _Utils_Tuple2(
 					A2($author$project$Main$updateDrag, indexedDrag, model),
 					$elm$core$Platform$Cmd$none);
-			case 'DragOverBench':
-				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 			case 'DragLeave':
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -8915,33 +9339,50 @@ var $author$project$Main$handleDragMsg = F2(
 						$author$project$Main$updateHover(
 							_Utils_update(
 								model,
-								{board: board})));
+								{
+									allReqMet: $author$project$Board$allReqMet(board),
+									board: board
+								})));
 				} else {
 					return A2($author$project$Main$dragEnd, false, model);
 				}
 		}
 	});
 var $elm$core$Platform$Cmd$map = _Platform_map;
-var $author$project$Items$mapDragPiece = F2(
-	function (f, drag) {
-		if (drag.$ === 'DragPiece') {
-			var piece = drag.a;
-			return $author$project$Items$DragPiece(
-				f(piece));
+var $elm$core$Maybe$map2 = F3(
+	function (func, ma, mb) {
+		if (ma.$ === 'Nothing') {
+			return $elm$core$Maybe$Nothing;
 		} else {
-			return drag;
+			var a = ma.a;
+			if (mb.$ === 'Nothing') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var b = mb.a;
+				return $elm$core$Maybe$Just(
+					A2(func, a, b));
+			}
 		}
 	});
-var $author$project$Items$mapDragTile = F2(
-	function (f, drag) {
-		if (drag.$ === 'DragTile') {
-			var tile = drag.a;
-			return $author$project$Items$DragTile(
-				f(tile));
-		} else {
-			return drag;
-		}
-	});
+var $author$project$Items$rotatePropertyLeft = function (property) {
+	var rotate = function (_v0) {
+		var xIndex = _v0.a;
+		var yIndex = _v0.b;
+		return _Utils_Tuple2(yIndex, (-1) * xIndex);
+	};
+	return _Utils_update(
+		property,
+		{
+			region: A2($elm$core$List$map, rotate, property.region)
+		});
+};
+var $author$project$Items$rotateEssenceLeft = function (essence) {
+	return _Utils_update(
+		essence,
+		{
+			property: $author$project$Items$rotatePropertyLeft(essence.property)
+		});
+};
 var $elm$core$Basics$modBy = _Basics_modBy;
 var $author$project$Items$rotatePieceLeft = function (piece) {
 	var transform = piece.borderTransform;
@@ -8972,18 +9413,6 @@ var $author$project$Items$rotatePieceLeft = function (piece) {
 			piece,
 			{borderTransform: newTransform}));
 };
-var $author$project$Items$rotatePropertyLeft = function (property) {
-	var rotate = function (_v0) {
-		var xIndex = _v0.a;
-		var yIndex = _v0.b;
-		return _Utils_Tuple2(yIndex, (-1) * xIndex);
-	};
-	return _Utils_update(
-		property,
-		{
-			region: A2($elm$core$List$map, rotate, property.region)
-		});
-};
 var $author$project$Items$rotateTileLeft = function (tile) {
 	return _Utils_update(
 		tile,
@@ -8992,10 +9421,41 @@ var $author$project$Items$rotateTileLeft = function (tile) {
 		});
 };
 var $author$project$Items$rotateDragLeft = function (drag) {
-	return A2(
-		$author$project$Items$mapDragPiece,
-		$author$project$Items$rotatePieceLeft,
-		A2($author$project$Items$mapDragTile, $author$project$Items$rotateTileLeft, drag));
+	switch (drag.$) {
+		case 'DragPiece':
+			var piece = drag.a;
+			return $author$project$Items$DragPiece(
+				$author$project$Items$rotatePieceLeft(piece));
+		case 'DragTile':
+			var tile = drag.a;
+			return $author$project$Items$DragTile(
+				$author$project$Items$rotateTileLeft(tile));
+		case 'DragEssence':
+			var essence = drag.a;
+			return $author$project$Items$DragEssence(
+				$author$project$Items$rotateEssenceLeft(essence));
+		default:
+			return $author$project$Items$None;
+	}
+};
+var $author$project$Items$rotatePropertyRight = function (property) {
+	var rotate = function (_v0) {
+		var xIndex = _v0.a;
+		var yIndex = _v0.b;
+		return _Utils_Tuple2((-1) * yIndex, xIndex);
+	};
+	return _Utils_update(
+		property,
+		{
+			region: A2($elm$core$List$map, rotate, property.region)
+		});
+};
+var $author$project$Items$rotateEssenceRight = function (essence) {
+	return _Utils_update(
+		essence,
+		{
+			property: $author$project$Items$rotatePropertyRight(essence.property)
+		});
 };
 var $author$project$Items$rotatePieceRight = function (piece) {
 	var transform = piece.borderTransform;
@@ -9026,18 +9486,6 @@ var $author$project$Items$rotatePieceRight = function (piece) {
 			piece,
 			{borderTransform: newTransform}));
 };
-var $author$project$Items$rotatePropertyRight = function (property) {
-	var rotate = function (_v0) {
-		var xIndex = _v0.a;
-		var yIndex = _v0.b;
-		return _Utils_Tuple2((-1) * yIndex, xIndex);
-	};
-	return _Utils_update(
-		property,
-		{
-			region: A2($elm$core$List$map, rotate, property.region)
-		});
-};
 var $author$project$Items$rotateTileRight = function (tile) {
 	return _Utils_update(
 		tile,
@@ -9046,10 +9494,25 @@ var $author$project$Items$rotateTileRight = function (tile) {
 		});
 };
 var $author$project$Items$rotateDragRight = function (drag) {
-	return A2(
-		$author$project$Items$mapDragPiece,
-		$author$project$Items$rotatePieceRight,
-		A2($author$project$Items$mapDragTile, $author$project$Items$rotateTileRight, drag));
+	switch (drag.$) {
+		case 'DragPiece':
+			var piece = drag.a;
+			return $author$project$Items$DragPiece(
+				$author$project$Items$rotatePieceRight(piece));
+		case 'DragTile':
+			var tile = drag.a;
+			return $author$project$Items$DragTile(
+				$author$project$Items$rotateTileRight(tile));
+		case 'DragEssence':
+			var essence = drag.a;
+			return $author$project$Items$DragEssence(
+				$author$project$Items$rotateEssenceRight(essence));
+		default:
+			return $author$project$Items$None;
+	}
+};
+var $author$project$Crafting$EssenceDistilled = function (a) {
+	return {$: 'EssenceDistilled', a: a};
 };
 var $author$project$Crafting$TileGenerated = function (a) {
 	return {$: 'TileGenerated', a: a};
@@ -9107,6 +9570,64 @@ var $author$project$Crafting$basicReqMet = F2(
 			var tile = _v0.a;
 			return (hasScroll && hasOrbs) ? $elm$core$Result$Ok(tile) : $elm$core$Result$Err(_Utils_Tuple0);
 		}
+	});
+var $author$project$ProcGen$distillEssence = F3(
+	function (state, blockedColors, tile) {
+		var _v0 = tile.properties;
+		_v0$2:
+		while (true) {
+			if (_v0.b) {
+				if (!_v0.b.b) {
+					var prop1 = _v0.a;
+					return $elm$core$Maybe$Just(
+						$elm$random$Random$constant(
+							_Utils_Tuple3(
+								_Utils_update(
+									state,
+									{nextEssenceId: state.nextEssenceId + 1}),
+								_Utils_update(
+									tile,
+									{properties: _List_Nil}),
+								{id: state.nextEssenceId, property: prop1})));
+				} else {
+					if (!_v0.b.b.b) {
+						var prop1 = _v0.a;
+						var _v1 = _v0.b;
+						var prop2 = _v1.a;
+						return $elm$core$Maybe$Just(
+							function () {
+								var prop2Chance = A2($elm$core$List$member, prop1.reqColor, blockedColors) ? 75 : 50;
+								var prop1Chance = A2($elm$core$List$member, prop2.reqColor, blockedColors) ? 75 : 50;
+								var distill = function (prop) {
+									return _Utils_Tuple3(
+										_Utils_update(
+											state,
+											{nextEssenceId: state.nextEssenceId + 1}),
+										_Utils_update(
+											tile,
+											{properties: _List_Nil}),
+										{id: state.nextEssenceId, property: prop});
+								};
+								return A2(
+									$elm$random$Random$map,
+									distill,
+									A2(
+										$elm$random$Random$weighted,
+										_Utils_Tuple2(prop1Chance, prop1),
+										_List_fromArray(
+											[
+												_Utils_Tuple2(prop2Chance, prop2)
+											])));
+							}());
+					} else {
+						break _v0$2;
+					}
+				}
+			} else {
+				break _v0$2;
+			}
+		}
+		return $elm$core$Maybe$Nothing;
 	});
 var $author$project$Crafting$removeDragFromBench = F2(
 	function (state, drag) {
@@ -9173,69 +9694,117 @@ var $author$project$Crafting$update = F2(
 		switch (msg.$) {
 			case 'ApplyScroll':
 				var _v1 = model.craftingTable.selectedScroll;
-				_v1$3:
-				while (true) {
-					if (_v1.$ === 'Just') {
-						switch (_v1.a.$) {
-							case 'Modification':
-								var _v2 = _v1.a;
-								var _v3 = A2($author$project$Crafting$basicReqMet, $author$project$Crafting$Modification, model.craftingTable);
-								if (_v3.$ === 'Ok') {
-									var tile = _v3.a;
-									return _Utils_Tuple2(
+				if (_v1.$ === 'Just') {
+					switch (_v1.a.$) {
+						case 'Modification':
+							var _v2 = _v1.a;
+							var _v3 = A2($author$project$Crafting$basicReqMet, $author$project$Items$Modification, model.craftingTable);
+							if (_v3.$ === 'Ok') {
+								var tile = _v3.a;
+								return _Utils_Tuple2(
+									A2(
+										$author$project$Crafting$updateModel,
+										model,
+										A2($author$project$Crafting$removeMats, $author$project$Items$Modification, model.craftingTable)),
+									A2(
+										$elm$random$Random$generate,
+										$author$project$Crafting$TileGenerated,
+										A3($author$project$ProcGen$generateBase, model.procGenState.level, model.craftingTable.selectedOrbs, tile)));
+							} else {
+								return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+							}
+						case 'Augmentation':
+							var _v4 = _v1.a;
+							var _v5 = A2($author$project$Crafting$basicReqMet, $author$project$Items$Augmentation, model.craftingTable);
+							if (_v5.$ === 'Ok') {
+								var tile = _v5.a;
+								return ($elm$core$List$length(tile.properties) <= 1) ? _Utils_Tuple2(
+									A2(
+										$author$project$Crafting$updateModel,
+										model,
+										A2($author$project$Crafting$removeMats, $author$project$Items$Augmentation, model.craftingTable)),
+									A2(
+										$elm$random$Random$generate,
+										$author$project$Crafting$TileGenerated,
+										A3($author$project$ProcGen$addProperty, model.procGenState.level, model.craftingTable.selectedOrbs, tile))) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+							} else {
+								return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+							}
+						case 'Alteration':
+							var _v6 = _v1.a;
+							var _v7 = A2($author$project$Crafting$basicReqMet, $author$project$Items$Alteration, model.craftingTable);
+							if (_v7.$ === 'Ok') {
+								var tile = _v7.a;
+								return _Utils_Tuple2(
+									A2(
+										$author$project$Crafting$updateModel,
+										model,
+										A2($author$project$Crafting$removeMats, $author$project$Items$Alteration, model.craftingTable)),
+									A2(
+										$elm$random$Random$generate,
+										$author$project$Crafting$TileGenerated,
+										A3($author$project$ProcGen$rerollProperties, model.procGenState.level, model.craftingTable.selectedOrbs, tile)));
+							} else {
+								return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+							}
+						default:
+							var _v8 = _v1.a;
+							var _v9 = A2($author$project$Crafting$basicReqMet, $author$project$Items$Distillation, model.craftingTable);
+							if (_v9.$ === 'Ok') {
+								var tile = _v9.a;
+								return ($elm$core$List$length(tile.properties) > 0) ? _Utils_Tuple2(
+									A2(
+										$author$project$Crafting$updateModel,
+										model,
+										A2($author$project$Crafting$removeMats, $author$project$Items$Distillation, model.craftingTable)),
+									A2(
+										$elm$core$Maybe$withDefault,
+										$elm$core$Platform$Cmd$none,
 										A2(
-											$author$project$Crafting$updateModel,
-											model,
-											A2($author$project$Crafting$removeMats, $author$project$Crafting$Modification, model.craftingTable)),
-										A2(
-											$elm$random$Random$generate,
-											$author$project$Crafting$TileGenerated,
-											A3($author$project$ProcGen$generateBase, model.procGenState.level, model.craftingTable.selectedOrbs, tile)));
-								} else {
-									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-								}
-							case 'Augmentation':
-								var _v4 = _v1.a;
-								var _v5 = A2($author$project$Crafting$basicReqMet, $author$project$Crafting$Augmentation, model.craftingTable);
-								if (_v5.$ === 'Ok') {
-									var tile = _v5.a;
-									return ($elm$core$List$length(tile.properties) <= 1) ? _Utils_Tuple2(
-										A2(
-											$author$project$Crafting$updateModel,
-											model,
-											A2($author$project$Crafting$removeMats, $author$project$Crafting$Augmentation, model.craftingTable)),
-										A2(
-											$elm$random$Random$generate,
-											$author$project$Crafting$TileGenerated,
-											A3($author$project$ProcGen$addProperty, model.procGenState.level, model.craftingTable.selectedOrbs, tile))) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-								} else {
-									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-								}
-							case 'Alteration':
-								var _v6 = _v1.a;
-								var _v7 = A2($author$project$Crafting$basicReqMet, $author$project$Crafting$Alteration, model.craftingTable);
-								if (_v7.$ === 'Ok') {
-									var tile = _v7.a;
-									return _Utils_Tuple2(
-										A2(
-											$author$project$Crafting$updateModel,
-											model,
-											A2($author$project$Crafting$removeMats, $author$project$Crafting$Alteration, model.craftingTable)),
-										A2(
-											$elm$random$Random$generate,
-											$author$project$Crafting$TileGenerated,
-											A3($author$project$ProcGen$rerollProperties, model.procGenState.level, model.craftingTable.selectedOrbs, tile)));
-								} else {
-									return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-								}
-							default:
-								break _v1$3;
+											$elm$core$Maybe$map,
+											$elm$random$Random$generate($author$project$Crafting$EssenceDistilled),
+											A3($author$project$ProcGen$distillEssence, model.procGenState, model.craftingTable.selectedOrbs, tile)))) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+							} else {
+								return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+							}
+					}
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'ApplyEssence':
+				var _v10 = craftingTable.tile;
+				if (_v10.$ === 'Just') {
+					var tile = _v10.a;
+					var _v11 = craftingTable.selectedEssence;
+					if (_v11.$ === 'Just') {
+						var essence = _v11.a;
+						if (!$elm$core$List$length(tile.properties)) {
+							var newTile = _Utils_update(
+								tile,
+								{
+									properties: _List_fromArray(
+										[essence.property])
+								});
+							return _Utils_Tuple2(
+								A2(
+									$author$project$Crafting$updateModel,
+									model,
+									_Utils_update(
+										craftingTable,
+										{
+											selectedEssence: $elm$core$Maybe$Nothing,
+											tile: $elm$core$Maybe$Just(newTile)
+										})),
+								$elm$core$Platform$Cmd$none);
+						} else {
+							return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 						}
 					} else {
-						break _v1$3;
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 					}
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
-				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 			case 'TileGenerated':
 				var tile = msg.a;
 				return _Utils_Tuple2(
@@ -9247,6 +9816,24 @@ var $author$project$Crafting$update = F2(
 							{
 								tile: $elm$core$Maybe$Just(tile)
 							})),
+					$elm$core$Platform$Cmd$none);
+			case 'EssenceDistilled':
+				var _v12 = msg.a;
+				var newRandState = _v12.a;
+				var newTile = _v12.b;
+				var newEssence = _v12.c;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							craftingTable: _Utils_update(
+								craftingTable,
+								{
+									selectedEssence: $elm$core$Maybe$Just(newEssence),
+									tile: $elm$core$Maybe$Just(newTile)
+								}),
+							procGenState: newRandState
+						}),
 					$elm$core$Platform$Cmd$none);
 			case 'ScrollSelected':
 				var scroll = msg.a;
@@ -9306,32 +9893,21 @@ var $author$project$Crafting$update = F2(
 									dragedItem: drag
 								}),
 							$elm$core$Platform$Cmd$none);
-					case 'DragOverBench':
-						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{craftingBenchHovered: true}),
-							$elm$core$Platform$Cmd$none);
-					case 'DragLeave':
-						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{craftingBenchHovered: false}),
-							$elm$core$Platform$Cmd$none);
 					case 'DragDrop':
-						var _v9 = model.dragedItem;
-						switch (_v9.$) {
+						var _v14 = model.dragedItem;
+						switch (_v14.$) {
 							case 'DragPiece':
-								var piece = _v9.a;
+								var piece = _v14.a;
 								return _Utils_Tuple2(
 									_Utils_update(
 										model,
 										{
+											dragedItem: $author$project$Items$None,
 											pieces: A2($elm$core$List$cons, piece, model.pieces)
 										}),
 									$elm$core$Platform$Cmd$none);
 							case 'DragTile':
-								var tile = _v9.a;
+								var tile = _v14.a;
 								if (_Utils_eq(craftingTable.tile, $elm$core$Maybe$Nothing)) {
 									var droppedTile = _Utils_update(
 										craftingTable,
@@ -9341,19 +9917,20 @@ var $author$project$Crafting$update = F2(
 									return _Utils_Tuple2(
 										_Utils_update(
 											model,
-											{craftingTable: droppedTile}),
+											{craftingTable: droppedTile, dragedItem: $author$project$Items$None}),
 										$elm$core$Platform$Cmd$none);
 								} else {
 									return _Utils_Tuple2(
 										_Utils_update(
 											model,
 											{
+												dragedItem: $author$project$Items$None,
 												tiles: A2($elm$core$List$cons, tile, model.tiles)
 											}),
 										$elm$core$Platform$Cmd$none);
 								}
 							case 'DragEssence':
-								var essence = _v9.a;
+								var essence = _v14.a;
 								if (_Utils_eq(craftingTable.selectedEssence, $elm$core$Maybe$Nothing)) {
 									var droppedEssence = _Utils_update(
 										craftingTable,
@@ -9363,13 +9940,14 @@ var $author$project$Crafting$update = F2(
 									return _Utils_Tuple2(
 										_Utils_update(
 											model,
-											{craftingTable: droppedEssence}),
+											{craftingTable: droppedEssence, dragedItem: $author$project$Items$None}),
 										$elm$core$Platform$Cmd$none);
 								} else {
 									return _Utils_Tuple2(
 										_Utils_update(
 											model,
 											{
+												dragedItem: $author$project$Items$None,
 												essences: A2($elm$core$List$cons, essence, model.essences)
 											}),
 										$elm$core$Platform$Cmd$none);
@@ -9472,12 +10050,83 @@ var $author$project$Main$update = F2(
 						model,
 						{procGenState: newState, tiles: tileList}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'CraftingMsg':
 				var craftingMsg = msg.a;
 				return A2(
 					$elm$core$Tuple$mapSecond,
 					$elm$core$Platform$Cmd$map($author$project$Main$CraftingMsg),
 					A2($author$project$Crafting$update, craftingMsg, model));
+			case 'NextLevel':
+				return model.allReqMet ? _Utils_Tuple2(
+					model,
+					A2(
+						$elm$random$Random$generate,
+						$author$project$Main$RewardsGenerated,
+						A2(
+							$author$project$ProcGen$generateReward,
+							$author$project$Board$countTotalReq(model.board),
+							model.procGenState))) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			case 'RewardsGenerated':
+				var _v5 = msg.a;
+				var newState = _v5.a;
+				var reward = _v5.b;
+				var newProcGenState = _Utils_update(
+					newState,
+					{level: newState.level + 1});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							allReqMet: false,
+							procGenState: newProcGenState,
+							rewards: $elm$core$Maybe$Just(reward),
+							tiles: _Utils_ap(
+								$author$project$Board$gatherAllTiles(model.board),
+								model.tiles)
+						}),
+					$elm$core$Platform$Cmd$batch(
+						_List_fromArray(
+							[
+								A2(
+								$elm$random$Random$generate,
+								$author$project$Main$NewBoard,
+								$author$project$ProcGen$generateBoard(newProcGenState.level)),
+								A2(
+								$elm$random$Random$generate,
+								$author$project$Main$NewPieceList,
+								$author$project$ProcGen$generatePieceList(newProcGenState))
+							])));
+			case 'RewardSelected':
+				var tile = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							selectedReward: $elm$core$Maybe$Just(tile)
+						}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				return A2(
+					$elm$core$Maybe$withDefault,
+					_Utils_Tuple2(model, $elm$core$Platform$Cmd$none),
+					A3(
+						$elm$core$Maybe$map2,
+						F2(
+							function (reward, tile) {
+								return _Utils_Tuple2(
+									_Utils_update(
+										model,
+										{
+											craftingTable: A3($author$project$Crafting$addCraftingMats, model.craftingTable, reward.scrolls, reward.orbs),
+											essences: _Utils_ap(reward.essences, model.essences),
+											rewards: $elm$core$Maybe$Nothing,
+											selectedReward: $elm$core$Maybe$Nothing,
+											tiles: A2($elm$core$List$cons, tile, model.tiles)
+										}),
+									$elm$core$Platform$Cmd$none);
+							}),
+						model.rewards,
+						model.selectedReward));
 		}
 	});
 var $author$project$Items$DragDrop = {$: 'DragDrop'};
@@ -9485,16 +10134,68 @@ var $author$project$Main$DragMsg = function (a) {
 	return {$: 'DragMsg', a: a};
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$core$List$append = F2(
-	function (xs, ys) {
-		if (!ys.b) {
-			return xs;
-		} else {
-			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
-		}
+var $author$project$Main$NextLevel = {$: 'NextLevel'};
+var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var $elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
 	});
-var $elm$core$List$concat = function (lists) {
-	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$Main$drawHeadline = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'height', '5vh'),
+				A2($elm$html$Html$Attributes$style, 'background-color', 'grey'),
+				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+				A2($elm$html$Html$Attributes$style, 'justify-content', 'space-between')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						'Level: ' + $elm$core$String$fromInt(model.procGenState.level))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						model.allReqMet ? 'You can progress to the next level' : 'Some requeriments are not yet met')
+					])),
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick($author$project$Main$NextLevel)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Next Level')
+					]))
+			]));
 };
 var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
 var $elm$svg$Svg$circle = $elm$svg$Svg$trustedNode('circle');
@@ -9540,10 +10241,6 @@ var $author$project$Items$drawColorCircle = function (color) {
 				_List_Nil)
 			]));
 };
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Items$drawReq = F2(
 	function (_v0, _v1) {
 		var pointC = _v0.a;
@@ -9713,13 +10410,6 @@ var $author$project$Items$drawProperty = F2(
 						' ' + ($elm$core$String$fromFloat(pr.prodBonus) + ('x + ' + $elm$core$String$fromFloat(pr.addBonus))))
 					])));
 	});
-var $elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
-	}
-};
 var $author$project$Items$drawTileTooltip = function (tile) {
 	return A2(
 		$elm$html$Html$div,
@@ -9729,54 +10419,72 @@ var $author$project$Items$drawTileTooltip = function (tile) {
 				A2($elm$html$Html$Attributes$style, 'font-size', '1.4rem'),
 				A2($elm$html$Html$Attributes$style, 'width', 'max-content')
 			]),
-		$elm$core$List$isEmpty(tile.properties) ? _List_fromArray(
+		_Utils_ap(
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$p,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text(
+							'Base value: ' + $elm$core$String$fromInt(tile.baseValue))
+						]))
+				]),
+			A2(
+				$elm$core$List$map,
+				function (pr) {
+					return A2(
+						$author$project$Items$drawProperty,
+						!_Utils_eq(tile.drawPosition, $elm$core$Maybe$Nothing),
+						pr);
+				},
+				tile.properties)));
+};
+var $elm$core$List$singleton = function (value) {
+	return _List_fromArray(
+		[value]);
+};
+var $author$project$Main$drawTooltip = function (model) {
+	return model.showTileTooltip ? A2(
+		$elm$html$Html$div,
+		_List_fromArray(
 			[
+				A2($elm$html$Html$Attributes$style, 'display', 'block'),
 				A2(
-				$elm$html$Html$p,
+				$elm$html$Html$Attributes$style,
+				'left',
+				$elm$core$String$fromInt(model.mousePos.a + 10) + 'px'),
+				A2(
+				$elm$html$Html$Attributes$style,
+				'top',
+				$elm$core$String$fromInt(model.mousePos.b + 10) + 'px'),
+				A2($elm$html$Html$Attributes$style, 'position', 'absolute')
+			]),
+		_Utils_ap(
+			A2(
+				$elm$core$Maybe$withDefault,
 				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text('No properties')
-					]))
-			]) : A2(
-			$elm$core$List$map,
-			function (pr) {
-				return A2(
-					$author$project$Items$drawProperty,
-					!_Utils_eq(tile.drawPosition, $elm$core$Maybe$Nothing),
-					pr);
-			},
-			tile.properties));
+				A2(
+					$elm$core$Maybe$map,
+					A2($elm$core$Basics$composeL, $elm$core$List$singleton, $author$project$Items$drawTileTooltip),
+					model.hoveredTile)),
+			A2(
+				$elm$core$Maybe$withDefault,
+				_List_Nil,
+				A2(
+					$elm$core$Maybe$map,
+					A2($elm$core$Basics$composeL, $elm$core$List$singleton, $author$project$Items$drawPieceTooltip),
+					model.hoveredPiece)))) : A2($elm$html$Html$div, _List_Nil, _List_Nil);
 };
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
 var $elm$html$Html$Events$onMouseUp = function (msg) {
 	return A2(
 		$elm$html$Html$Events$on,
 		'mouseup',
 		$elm$json$Json$Decode$succeed(msg));
 };
-var $elm$core$List$singleton = function (value) {
-	return _List_fromArray(
-		[value]);
-};
 var $author$project$Items$DragFromHandStart = function (a) {
 	return {$: 'DragFromHandStart', a: a};
-};
-var $author$project$Crafting$DragMsg = function (a) {
-	return {$: 'DragMsg', a: a};
-};
-var $author$project$Items$DragEssence = function (a) {
-	return {$: 'DragEssence', a: a};
 };
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -9789,15 +10497,64 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$svg$Svg$Attributes$class = _VirtualDom_attribute('class');
 var $elm$svg$Svg$Attributes$dominantBaseline = _VirtualDom_attribute('dominant-baseline');
+var $elm$svg$Svg$text = $elm$virtual_dom$VirtualDom$text;
+var $elm$svg$Svg$Attributes$textAnchor = _VirtualDom_attribute('text-anchor');
+var $elm$svg$Svg$text_ = $elm$svg$Svg$trustedNode('text');
+var $author$project$Items$drawEssenceIcon = function (essence) {
+	return _List_fromArray(
+		[
+			A2(
+			$elm$svg$Svg$svg,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$viewBox('0 0 50 50'),
+					$elm$svg$Svg$Attributes$x('0'),
+					$elm$svg$Svg$Attributes$y('0'),
+					$elm$svg$Svg$Attributes$width('50'),
+					$elm$svg$Svg$Attributes$height('50')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$svg$Svg$text_,
+					_List_fromArray(
+						[
+							$elm$svg$Svg$Attributes$fill('black'),
+							$elm$svg$Svg$Attributes$x('25'),
+							$elm$svg$Svg$Attributes$y('25'),
+							$elm$svg$Svg$Attributes$textAnchor('middle'),
+							$elm$svg$Svg$Attributes$dominantBaseline('central'),
+							$elm$svg$Svg$Attributes$style('font-size: 1.5em'),
+							$elm$svg$Svg$Attributes$class('noselect'),
+							$elm$svg$Svg$Attributes$fill(
+							$author$project$Items$colorToString(essence.property.reqColor))
+						]),
+					_List_fromArray(
+						[
+							$elm$svg$Svg$text('E')
+						]))
+				])),
+			A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					A2($elm$html$Html$Attributes$style, 'background-color', 'yellow'),
+					A2($elm$html$Html$Attributes$style, 'font-size', '1.4rem'),
+					A2($elm$html$Html$Attributes$style, 'width', 'max-content'),
+					$elm$html$Html$Attributes$class('tooltip')
+				]),
+			_List_fromArray(
+				[
+					A2($author$project$Items$drawProperty, false, essence.property)
+				]))
+		]);
+};
 var $elm$html$Html$Events$onMouseDown = function (msg) {
 	return A2(
 		$elm$html$Html$Events$on,
 		'mousedown',
 		$elm$json$Json$Decode$succeed(msg));
 };
-var $elm$svg$Svg$text = $elm$virtual_dom$VirtualDom$text;
-var $elm$svg$Svg$Attributes$textAnchor = _VirtualDom_attribute('text-anchor');
-var $elm$svg$Svg$text_ = $elm$svg$Svg$trustedNode('text');
 var $author$project$Items$drawEssence = F2(
 	function (dragMsg, essence) {
 		return A2(
@@ -9809,53 +10566,7 @@ var $author$project$Items$drawEssence = F2(
 					dragMsg(
 						$author$project$Items$DragEssence(essence)))
 				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$svg$Svg$svg,
-					_List_fromArray(
-						[
-							$elm$svg$Svg$Attributes$viewBox('0 0 50 50'),
-							$elm$svg$Svg$Attributes$x('0'),
-							$elm$svg$Svg$Attributes$y('0'),
-							$elm$svg$Svg$Attributes$width('50'),
-							$elm$svg$Svg$Attributes$height('50')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$svg$Svg$text_,
-							_List_fromArray(
-								[
-									$elm$svg$Svg$Attributes$fill('black'),
-									$elm$svg$Svg$Attributes$x('25'),
-									$elm$svg$Svg$Attributes$y('25'),
-									$elm$svg$Svg$Attributes$textAnchor('middle'),
-									$elm$svg$Svg$Attributes$dominantBaseline('central'),
-									$elm$svg$Svg$Attributes$style('font-size: 1.5em'),
-									$elm$svg$Svg$Attributes$class('noselect'),
-									$elm$svg$Svg$Attributes$fill(
-									$author$project$Items$colorToString(essence.property.reqColor))
-								]),
-							_List_fromArray(
-								[
-									$elm$svg$Svg$text('E')
-								]))
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'background-color', 'yellow'),
-							A2($elm$html$Html$Attributes$style, 'font-size', '1.4rem'),
-							A2($elm$html$Html$Attributes$style, 'width', 'max-content'),
-							$elm$html$Html$Attributes$class('tooltip')
-						]),
-					_List_fromArray(
-						[
-							A2($author$project$Items$drawProperty, false, essence.property)
-						]))
-				]));
+			$author$project$Items$drawEssenceIcon(essence));
 	});
 var $elm$svg$Svg$Attributes$transform = _VirtualDom_attribute('transform');
 var $author$project$Items$drawPieceBorder = function (piece) {
@@ -10118,26 +10829,10 @@ var $author$project$Items$drawTileIcon = F2(
 	});
 var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
 var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
+var $author$project$Crafting$ApplyEssence = {$: 'ApplyEssence'};
 var $author$project$Crafting$ApplyScroll = {$: 'ApplyScroll'};
-var $elm$html$Html$button = _VirtualDom_node('button');
-var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
-	return {$: 'MayStopPropagation', a: a};
-};
-var $elm$html$Html$Events$stopPropagationOn = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
-	});
 var $author$project$Crafting$OrbSelected = function (a) {
 	return {$: 'OrbSelected', a: a};
-};
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
 };
 var $author$project$Crafting$viewOrbs = F2(
 	function (orbs, selected) {
@@ -10227,8 +10922,9 @@ var $author$project$Crafting$viewScrolls = F2(
 				},
 				scrolls));
 	});
-var $author$project$Items$DragLeave = {$: 'DragLeave'};
-var $author$project$Items$DragOverBench = {$: 'DragOverBench'};
+var $author$project$Crafting$DragMsg = function (a) {
+	return {$: 'DragMsg', a: a};
+};
 var $author$project$Items$DragFromBenchStart = function (a) {
 	return {$: 'DragFromBenchStart', a: a};
 };
@@ -10276,18 +10972,16 @@ var $author$project$Crafting$drawTileIcon = function (mTile) {
 		return A2($elm$html$Html$div, _List_Nil, _List_Nil);
 	}
 };
-var $elm$html$Html$Events$onMouseEnter = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'mouseenter',
-		$elm$json$Json$Decode$succeed(msg));
+var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
 };
-var $elm$html$Html$Events$onMouseLeave = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'mouseleave',
-		$elm$json$Json$Decode$succeed(msg));
-};
+var $elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
 var $author$project$Crafting$viewTileBench = F2(
 	function (tile, essence) {
 		return A2(
@@ -10302,12 +10996,13 @@ var $author$project$Crafting$viewTileBench = F2(
 					A2($elm$html$Html$Attributes$style, 'flex-direction', 'column'),
 					A2($elm$html$Html$Attributes$style, 'justify-content', 'center'),
 					A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
-					$elm$html$Html$Events$onMouseEnter(
-					$author$project$Crafting$DragMsg($author$project$Items$DragOverBench)),
-					$elm$html$Html$Events$onMouseLeave(
-					$author$project$Crafting$DragMsg($author$project$Items$DragLeave)),
-					$elm$html$Html$Events$onMouseUp(
-					$author$project$Crafting$DragMsg($author$project$Items$DragDrop))
+					A2(
+					$elm$html$Html$Events$stopPropagationOn,
+					'mouseup',
+					$elm$json$Json$Decode$succeed(
+						_Utils_Tuple2(
+							$author$project$Crafting$DragMsg($author$project$Items$DragDrop),
+							true)))
 				]),
 			_List_fromArray(
 				[
@@ -10325,15 +11020,21 @@ var $author$project$Crafting$viewCraftingTable = function (state) {
 				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						A2(
-						$elm$html$Html$Events$stopPropagationOn,
-						'mouseup',
-						$elm$json$Json$Decode$succeed(
-							_Utils_Tuple2($author$project$Crafting$ApplyScroll, true)))
+						$elm$html$Html$Events$onClick($author$project$Crafting$ApplyScroll)
 					]),
 				_List_fromArray(
 					[
 						$elm$html$Html$text('Apply Scroll')
+					])),
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick($author$project$Crafting$ApplyEssence)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Apply Essence')
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -10357,8 +11058,8 @@ var $author$project$Main$viewLeftPane = function (model) {
 			[
 				A2($elm$html$Html$Attributes$style, 'border', '0.8em double black'),
 				A2($elm$html$Html$Attributes$style, 'background-color', 'white'),
-				A2($elm$html$Html$Attributes$style, 'height', '95vh'),
-				A2($elm$html$Html$Attributes$style, 'width', '45vw')
+				A2($elm$html$Html$Attributes$style, 'width', '45vw'),
+				A2($elm$html$Html$Attributes$style, 'margin', '1vw')
 			]),
 		_List_fromArray(
 			[
@@ -10408,10 +11109,7 @@ var $author$project$Main$viewLeftPane = function (model) {
 					$elm$core$List$map,
 					A2(
 						$elm$core$Basics$composeL,
-						A2(
-							$elm$core$Basics$composeL,
-							$elm$html$Html$map($author$project$Main$CraftingMsg),
-							$elm$html$Html$map($author$project$Crafting$DragMsg)),
+						$elm$html$Html$map($author$project$Main$DragMsg),
 						$author$project$Items$drawEssence($author$project$Items$DragFromHandStart)),
 					model.essences)),
 				A2(
@@ -10420,9 +11118,150 @@ var $author$project$Main$viewLeftPane = function (model) {
 				$author$project$Crafting$viewCraftingTable(model.craftingTable))
 			]));
 };
+var $author$project$Main$RewardConfirmed = {$: 'RewardConfirmed'};
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var $author$project$Main$RewardSelected = function (a) {
+	return {$: 'RewardSelected', a: a};
+};
+var $author$project$Main$drawTileIconReward = F2(
+	function (selectedTile, tile) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					A2($elm$html$Html$Attributes$style, 'display', 'inline-block'),
+					$elm$html$Html$Attributes$class('tile'),
+					$elm$html$Html$Events$onClick(
+					$author$project$Main$RewardSelected(tile)),
+					A2(
+					$elm$html$Html$Attributes$style,
+					'border',
+					_Utils_eq(
+						$elm$core$Maybe$Just(tile),
+						selectedTile) ? '2px solid black' : 'none')
+				]),
+			_List_fromArray(
+				[
+					$author$project$Items$drawTileIconSvg(tile),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('tooltip')
+						]),
+					_List_fromArray(
+						[
+							$author$project$Items$drawTileTooltip(tile)
+						]))
+				]));
+	});
+var $author$project$Main$viewRewards = function (model) {
+	var _v0 = model.rewards;
+	if (_v0.$ === 'Just') {
+		var rewards = _v0.a;
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					A2($elm$html$Html$Attributes$style, 'position', 'fixed'),
+					A2($elm$html$Html$Attributes$style, 'top', '50%'),
+					A2($elm$html$Html$Attributes$style, 'left', '50%'),
+					A2($elm$html$Html$Attributes$style, 'z-index', '10'),
+					A2($elm$html$Html$Attributes$style, 'background-color', 'grey'),
+					A2($elm$html$Html$Attributes$style, 'transform', 'translate(-50%, -50%)')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					A2(
+						$elm$core$List$map,
+						$author$project$Main$drawTileIconReward(model.selectedReward),
+						rewards.tiles)),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'display', 'flex')
+						]),
+					A2(
+						$elm$core$List$map,
+						A2(
+							$elm$core$Basics$composeR,
+							$author$project$Items$drawEssenceIcon,
+							$elm$html$Html$div(
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('tile')
+									]))),
+						rewards.essences)),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'display', 'flex')
+						]),
+					A2(
+						$elm$core$List$map,
+						function (_v1) {
+							var scrl = _v1.a;
+							var quant = _v1.b;
+							return A2(
+								$elm$html$Html$div,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										$author$project$Crafting$scrollToText(scrl) + (': ' + $elm$core$String$fromInt(quant)))
+									]));
+						},
+						rewards.scrolls)),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'display', 'flex')
+						]),
+					A2(
+						$elm$core$List$map,
+						function (_v2) {
+							var orb = _v2.a;
+							var quant = _v2.b;
+							return A2(
+								$elm$html$Html$div,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$author$project$Items$drawColorCircle(orb),
+										$elm$html$Html$text(
+										': ' + $elm$core$String$fromInt(quant))
+									]));
+						},
+						rewards.orbs)),
+					A2(
+					$elm$html$Html$button,
+					_List_fromArray(
+						[
+							$elm$html$Html$Events$onClick($author$project$Main$RewardConfirmed)
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Confirm')
+						]))
+				]));
+	} else {
+		return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+	}
+};
 var $author$project$Items$DragFromBoardStart = function (a) {
 	return {$: 'DragFromBoardStart', a: a};
 };
+var $author$project$Items$DragLeave = {$: 'DragLeave'};
 var $author$project$Items$DragOverField = function (a) {
 	return {$: 'DragOverField', a: a};
 };
@@ -10480,6 +11319,18 @@ var $author$project$Board$drawFieldRect = F4(
 					]),
 				$author$project$Board$drawHighlight(highlight)));
 	});
+var $elm$html$Html$Events$onMouseEnter = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'mouseenter',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $elm$html$Html$Events$onMouseLeave = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'mouseleave',
+		$elm$json$Json$Decode$succeed(msg));
+};
 var $author$project$Board$drawTile = F4(
 	function (_v0, pieceId, tile, highlight) {
 		var xIndex = _v0.a;
@@ -10651,35 +11502,6 @@ var $author$project$Board$indexedMap = F2(
 			},
 			board);
 	});
-var $elm$core$Elm$JsArray$map = _JsArray_map;
-var $elm$core$Array$map = F2(
-	function (func, _v0) {
-		var len = _v0.a;
-		var startShift = _v0.b;
-		var tree = _v0.c;
-		var tail = _v0.d;
-		var helper = function (node) {
-			if (node.$ === 'SubTree') {
-				var subTree = node.a;
-				return $elm$core$Array$SubTree(
-					A2($elm$core$Elm$JsArray$map, helper, subTree));
-			} else {
-				var values = node.a;
-				return $elm$core$Array$Leaf(
-					A2($elm$core$Elm$JsArray$map, func, values));
-			}
-		};
-		return A4(
-			$elm$core$Array$Array_elm_builtin,
-			len,
-			startShift,
-			A2($elm$core$Elm$JsArray$map, helper, tree),
-			A2($elm$core$Elm$JsArray$map, func, tail));
-	});
-var $author$project$Board$toList = function (array) {
-	return $elm$core$Array$toList(
-		A2($elm$core$Array$map, $elm$core$Array$toList, array));
-};
 var $author$project$Board$drawBoard = function (board) {
 	return A2(
 		$elm$svg$Svg$svg,
@@ -10820,68 +11642,35 @@ var $author$project$Main$view = function (model) {
 			_List_fromArray(
 				[
 					A2($elm$html$Html$Attributes$style, 'height', '100vh'),
-					A2($elm$html$Html$Attributes$style, 'width', '99vw'),
+					A2($elm$html$Html$Attributes$style, 'width', '100vw'),
 					A2($elm$html$Html$Attributes$style, 'overflow', 'hidden'),
-					A2($elm$html$Html$Attributes$style, 'position', 'relative'),
-					A2($elm$html$Html$Attributes$style, 'padding-left', '1vw')
+					A2($elm$html$Html$Attributes$style, 'position', 'relative')
 				]),
 			_Utils_eq(model.dragedItem, $author$project$Items$None) ? _List_Nil : _List_fromArray(
 				[
 					$elm$html$Html$Events$onMouseUp(
 					$author$project$Main$DragMsg($author$project$Items$DragDrop))
 				])),
-		_Utils_ap(
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'display', 'grid'),
-							A2($elm$html$Html$Attributes$style, 'grid-template-columns', '3fr 4fr'),
-							A2($elm$html$Html$Attributes$style, 'grid-gap', '10px'),
-							A2($elm$html$Html$Attributes$style, 'height', '100vh'),
-							A2($elm$html$Html$Attributes$style, 'align-content', 'center')
-						]),
-					_List_fromArray(
-						[
-							$author$project$Main$viewLeftPane(model),
-							$author$project$Main$viewRightPane(model)
-						]))
-				]),
-			model.showTileTooltip ? _List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'display', 'block'),
-							A2(
-							$elm$html$Html$Attributes$style,
-							'left',
-							$elm$core$String$fromInt(model.mousePos.a + 10) + 'px'),
-							A2(
-							$elm$html$Html$Attributes$style,
-							'top',
-							$elm$core$String$fromInt(model.mousePos.b + 10) + 'px'),
-							A2($elm$html$Html$Attributes$style, 'position', 'absolute')
-						]),
-					_Utils_ap(
-						A2(
-							$elm$core$Maybe$withDefault,
-							_List_Nil,
-							A2(
-								$elm$core$Maybe$map,
-								A2($elm$core$Basics$composeL, $elm$core$List$singleton, $author$project$Items$drawTileTooltip),
-								model.hoveredTile)),
-						A2(
-							$elm$core$Maybe$withDefault,
-							_List_Nil,
-							A2(
-								$elm$core$Maybe$map,
-								A2($elm$core$Basics$composeL, $elm$core$List$singleton, $author$project$Items$drawPieceTooltip),
-								model.hoveredPiece))))
-				]) : _List_Nil));
+		_List_fromArray(
+			[
+				$author$project$Main$viewRewards(model),
+				$author$project$Main$drawHeadline(model),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'display', 'grid'),
+						A2($elm$html$Html$Attributes$style, 'grid-template-columns', '3fr 4fr'),
+						A2($elm$html$Html$Attributes$style, 'grid-gap', '10px'),
+						A2($elm$html$Html$Attributes$style, 'align-content', 'center')
+					]),
+				_List_fromArray(
+					[
+						$author$project$Main$viewLeftPane(model),
+						$author$project$Main$viewRightPane(model)
+					])),
+				$author$project$Main$drawTooltip(model)
+			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(
 	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
