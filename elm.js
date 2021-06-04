@@ -7014,7 +7014,16 @@ var $author$project$Crafting$demoScrolls = _List_fromArray(
 		_Utils_Tuple2($author$project$Items$Alteration, 5),
 		_Utils_Tuple2($author$project$Items$Distillation, 5)
 	]);
-var $author$project$Crafting$init = {orbs: $author$project$Crafting$demoOrbs, scrolls: $author$project$Crafting$demoScrolls, selectedEssence: $elm$core$Maybe$Nothing, selectedOrbs: _List_Nil, selectedScroll: $elm$core$Maybe$Nothing, tile: $elm$core$Maybe$Nothing};
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $author$project$Crafting$init = {
+	orbs: $author$project$Crafting$demoOrbs,
+	scrollInfo: A2($elm$html$Html$div, _List_Nil, _List_Nil),
+	scrolls: $author$project$Crafting$demoScrolls,
+	selectedEssence: $elm$core$Maybe$Nothing,
+	selectedOrbs: _List_Nil,
+	selectedScroll: $elm$core$Maybe$Nothing,
+	tile: $elm$core$Maybe$Nothing
+};
 var $author$project$ProcGen$init = {level: 1, nextEssenceId: 0, nextPieceId: 0, nextTileId: 0};
 var $author$project$Main$noBoard = {colReqs: $elm$core$Dict$empty, highlight: _List_Nil, pieces: _List_Nil, rowReqs: $elm$core$Dict$empty, tiles: $elm$core$Array$empty};
 var $author$project$Main$init = function (_v0) {
@@ -9682,6 +9691,85 @@ var $author$project$ProcGen$rerollProperties = F3(
 			},
 			A2($author$project$ProcGen$generateProperties, level, blockedColors));
 	});
+var $author$project$Crafting$calculateBaseColorChance = F2(
+	function (color, selectedColors) {
+		return A2($elm$core$List$member, color, selectedColors) ? 0 : (1 / (4 - $elm$core$List$length(selectedColors)));
+	});
+var $author$project$Crafting$colorName = function (color) {
+	switch (color.$) {
+		case 'Purple':
+			return 'Purple';
+		case 'Green':
+			return 'Green';
+		case 'Yellow':
+			return 'Yellow';
+		default:
+			return 'Orange';
+	}
+};
+var $author$project$Items$colors = _List_fromArray(
+	[$author$project$Items$Purple, $author$project$Items$Green, $author$project$Items$Yellow, $author$project$Items$Orange]);
+var $elm$html$Html$li = _VirtualDom_node('li');
+var $elm$html$Html$p = _VirtualDom_node('p');
+var $author$project$Crafting$showPercent = function (_float) {
+	return $elm$core$String$fromInt(
+		$elm$core$Basics$floor(_float * 100)) + '%';
+};
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $elm$html$Html$ul = _VirtualDom_node('ul');
+var $author$project$Crafting$updateInfo = function (state) {
+	var newScrollInfo = function () {
+		var _v0 = state.selectedScroll;
+		if ((_v0.$ === 'Just') && (_v0.a.$ === 'Modification')) {
+			var _v1 = _v0.a;
+			return A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$p,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Scroll info')
+							])),
+						A2(
+						$elm$html$Html$p,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Color:')
+							])),
+						A2(
+						$elm$html$Html$ul,
+						_List_Nil,
+						A2(
+							$elm$core$List$map,
+							function (color) {
+								return A2(
+									$elm$html$Html$li,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text(
+											_Utils_ap(
+												$author$project$Crafting$colorName(color),
+												$author$project$Crafting$showPercent(
+													A2($author$project$Crafting$calculateBaseColorChance, color, state.selectedOrbs))))
+										]));
+							},
+							$author$project$Items$colors))
+					]));
+		} else {
+			return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+		}
+	}();
+	return _Utils_update(
+		state,
+		{scrollInfo: newScrollInfo});
+};
 var $author$project$Crafting$updateModel = F2(
 	function (model, state) {
 		return _Utils_update(
@@ -9843,18 +9931,20 @@ var $author$project$Crafting$update = F2(
 					A2(
 						$author$project$Crafting$updateModel,
 						model,
-						_Utils_update(
-							craftingTable,
-							{selectedScroll: $elm$core$Maybe$Nothing})),
+						$author$project$Crafting$updateInfo(
+							_Utils_update(
+								craftingTable,
+								{selectedScroll: $elm$core$Maybe$Nothing}))),
 					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 					A2(
 						$author$project$Crafting$updateModel,
 						model,
-						_Utils_update(
-							craftingTable,
-							{
-								selectedScroll: $elm$core$Maybe$Just(scroll)
-							})),
+						$author$project$Crafting$updateInfo(
+							_Utils_update(
+								craftingTable,
+								{
+									selectedScroll: $elm$core$Maybe$Just(scroll)
+								}))),
 					$elm$core$Platform$Cmd$none);
 			case 'OrbSelected':
 				var orb = msg.a;
@@ -9862,23 +9952,25 @@ var $author$project$Crafting$update = F2(
 					A2(
 						$author$project$Crafting$updateModel,
 						model,
-						_Utils_update(
-							craftingTable,
-							{
-								selectedOrbs: A2($elm_community$list_extra$List$Extra$remove, orb, model.craftingTable.selectedOrbs)
-							})),
+						$author$project$Crafting$updateInfo(
+							_Utils_update(
+								craftingTable,
+								{
+									selectedOrbs: A2($elm_community$list_extra$List$Extra$remove, orb, model.craftingTable.selectedOrbs)
+								}))),
 					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 					A2(
 						$author$project$Crafting$updateModel,
 						model,
-						_Utils_update(
-							craftingTable,
-							{
-								selectedOrbs: A2(
-									$elm$core$List$take,
-									2,
-									A2($elm$core$List$cons, orb, model.craftingTable.selectedOrbs))
-							})),
+						$author$project$Crafting$updateInfo(
+							_Utils_update(
+								craftingTable,
+								{
+									selectedOrbs: A2(
+										$elm$core$List$take,
+										2,
+										A2($elm$core$List$cons, orb, model.craftingTable.selectedOrbs))
+								}))),
 					$elm$core$Platform$Cmd$none);
 			default:
 				var dragMsg = msg.a;
@@ -10133,7 +10225,6 @@ var $author$project$Items$DragDrop = {$: 'DragDrop'};
 var $author$project$Main$DragMsg = function (a) {
 	return {$: 'DragMsg', a: a};
 };
-var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Main$NextLevel = {$: 'NextLevel'};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
@@ -10155,8 +10246,6 @@ var $elm$html$Html$Events$onClick = function (msg) {
 };
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Main$drawHeadline = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -10390,7 +10479,6 @@ var $author$project$Items$drawReqMet = function (isMet) {
 			]));
 };
 var $elm$core$String$fromFloat = _String_fromNumber;
-var $elm$html$Html$p = _VirtualDom_node('p');
 var $author$project$Items$drawProperty = F2(
 	function (showReqMet, pr) {
 		return A2(
@@ -11047,7 +11135,16 @@ var $author$project$Crafting$viewCraftingTable = function (state) {
 					[
 						A2($author$project$Crafting$viewTileBench, state.tile, state.selectedEssence),
 						A2($author$project$Crafting$viewScrolls, state.scrolls, state.selectedScroll),
-						A2($author$project$Crafting$viewOrbs, state.orbs, state.selectedOrbs)
+						A2($author$project$Crafting$viewOrbs, state.orbs, state.selectedOrbs),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'background-color', 'grey'),
+								A2($elm$html$Html$Attributes$style, 'width', '60%')
+							]),
+						_List_fromArray(
+							[state.scrollInfo]))
 					]))
 			]));
 };

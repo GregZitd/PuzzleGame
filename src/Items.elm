@@ -16,6 +16,9 @@ type Color
     | Yellow --fed766
     | Orange --f4743b
 
+colors : List Color
+colors = [ Purple, Green, Yellow, Orange ]
+
 type alias Score = List (Color, Int)
 
 emptyScore : Score
@@ -31,6 +34,13 @@ type Scroll
     | Augmentation
     | Alteration
     | Distillation
+
+type alias Reward =
+    { tiles : List Tile
+    , scrolls : List (Scroll, Int)
+    , orbs : Score
+    , essences : List Essence
+    }
 
 --DRAG
 
@@ -119,6 +129,7 @@ type Shape
     | Fours (List Index)
     | Fourz (List Index)
     | Fourl (List Index)
+    | Fourr (List Index)
 
 twoiStartIndex : List Index
 twoiStartIndex = [(0,0), (0,1)]
@@ -143,6 +154,9 @@ fourzStartIndex = [(0,0), (-1,0), (0,1), (1,1)]
 
 fourlStartIndex : List Index
 fourlStartIndex = [(0,0), (0,-1), (0,1), (1,1)]
+
+fourrStartIndex : List Index
+fourrStartIndex = [(0,0), (0,1), (0,-1), (1,-1)]
 
 newDrawPosition : Maybe Index -> Piece -> Piece
 newDrawPosition mIndex piece =
@@ -188,6 +202,7 @@ shapeMap f shape =
         Fours indexes -> Fours <| f indexes
         Fourz indexes -> Fourz <| f indexes
         Fourl indexes -> Fourl <| f indexes
+        Fourr indexes -> Fourr <| f indexes
 
 rotatePieceRight : Piece -> Piece
 rotatePieceRight piece =
@@ -226,6 +241,7 @@ shapeToIndexes shape =
         Fours indexes -> indexes
         Fourz indexes -> indexes
         Fourl indexes -> indexes
+        Fourr indexes -> indexes
 
 drawPieceTooltip : Piece -> Html msg
 drawPieceTooltip piece =
@@ -338,6 +354,8 @@ drawPieceBorder piece =
                     drawPath cord " h 52 v 52 h 52 v 52 h -104 v -52 h -52 v -52 h 52"
                 Fourl _ ->
                     drawPath cord " v 104 h 104 v -52 h -52 v -104 h -52 v 52"
+                Fourr _ ->
+                    drawPath cord " v 104 h 52 v -104 h 52 v -52 h -104 v 52"
     in case piece.drawPosition of
            Just pos -> draw pos
            Nothing -> draw (0,0)

@@ -11571,6 +11571,9 @@ var $author$project$Items$Fourl = function (a) {
 var $author$project$Items$Fouro = function (a) {
 	return {$: 'Fouro', a: a};
 };
+var $author$project$Items$Fourr = function (a) {
+	return {$: 'Fourr', a: a};
+};
 var $author$project$Items$Fours = function (a) {
 	return {$: 'Fours', a: a};
 };
@@ -11593,6 +11596,13 @@ var $author$project$Items$fouroStartIndex = _List_fromArray(
 		_Utils_Tuple2(1, 0),
 		_Utils_Tuple2(0, 1),
 		_Utils_Tuple2(1, 1)
+	]);
+var $author$project$Items$fourrStartIndex = _List_fromArray(
+	[
+		_Utils_Tuple2(0, 0),
+		_Utils_Tuple2(0, 1),
+		_Utils_Tuple2(0, -1),
+		_Utils_Tuple2(1, -1)
 	]);
 var $author$project$Items$foursStartIndex = _List_fromArray(
 	[
@@ -11642,7 +11652,8 @@ var $author$project$ProcGen$generate4Piece = function (level) {
 					$author$project$Items$Fourt($author$project$Items$fourtStartIndex),
 					$author$project$Items$Fours($author$project$Items$foursStartIndex),
 					$author$project$Items$Fourz($author$project$Items$fourzStartIndex),
-					$author$project$Items$Fourl($author$project$Items$fourlStartIndex)
+					$author$project$Items$Fourl($author$project$Items$fourlStartIndex),
+					$author$project$Items$Fourr($author$project$Items$fourrStartIndex)
 				])),
 		A2($elm$random$Random$andThen, $author$project$ProcGen$generateReq, reqNum));
 };
@@ -11759,57 +11770,64 @@ var $author$project$ProcGen$generatePieceList = function (state) {
 };
 var $author$project$ProcGen$defaultTile = $elm$random$Random$constant(
 	{addBonus: 0, baseValue: 1, color: $author$project$Items$Green, currentValue: 1, drawPosition: $elm$core$Maybe$Nothing, id: 0, prodBonus: 0, properties: _List_Nil});
+var $author$project$ProcGen$calculateBaseValueChances = function (level) {
+	var threeTile = (level * 0.015) + 0.05;
+	var twoTile = (1 - threeTile) * (0.025 + 0.15);
+	var oneTile = (1 - threeTile) - twoTile;
+	return _List_fromArray(
+		[
+			_Utils_Tuple2(threeTile, 3),
+			_Utils_Tuple2(twoTile, 2),
+			_Utils_Tuple2(oneTile, 1)
+		]);
+};
 var $author$project$ProcGen$generateBase = F3(
 	function (level, blockedColors, tile) {
-		var updateTileColor = F2(
-			function (col, uTile) {
-				return _Utils_update(
-					uTile,
-					{color: col});
-			});
-		var updateTileBaseVal = F3(
-			function (three, two, uTile) {
-				return three ? _Utils_update(
-					uTile,
-					{baseValue: 3}) : (two ? _Utils_update(
-					uTile,
-					{baseValue: 2}) : _Utils_update(
-					uTile,
-					{baseValue: 1}));
-			});
-		var is3Tile = A2(
-			$elm$random$Random$map,
-			$elm$core$Basics$gt((level * 0.015) + 0.05),
-			A2($elm$random$Random$float, 0, 1));
-		var is2Tile = A2(
-			$elm$random$Random$map,
-			$elm$core$Basics$gt((level * 0.025) + 0.15),
-			A2($elm$random$Random$float, 0, 1));
-		return A3(
-			$elm$random$Random$map2,
-			updateTileColor,
-			$author$project$ProcGen$generateColor(blockedColors),
-			A4(
-				$elm$random$Random$map3,
-				updateTileBaseVal,
-				is3Tile,
-				is2Tile,
-				$elm$random$Random$constant(tile)));
+		var _v0 = $author$project$ProcGen$calculateBaseValueChances(level);
+		if (_v0.b) {
+			var x = _v0.a;
+			var xs = _v0.b;
+			return A3(
+				$elm$random$Random$map2,
+				F2(
+					function (value, color) {
+						return _Utils_update(
+							tile,
+							{baseValue: value, color: color});
+					}),
+				A2($elm$random$Random$weighted, x, xs),
+				$author$project$ProcGen$generateColor(blockedColors));
+		} else {
+			return $elm$random$Random$constant(tile);
+		}
 	});
-var $elm_community$random_extra$Random$Extra$andThen2 = F3(
-	function (constructor, generatorA, generatorB) {
-		return A2(
-			$elm$random$Random$andThen,
-			function (a) {
-				return A2(
-					$elm$random$Random$andThen,
-					function (b) {
-						return A2(constructor, a, b);
-					},
-					generatorB);
-			},
-			generatorA);
+var $elm$core$Basics$min = F2(
+	function (x, y) {
+		return (_Utils_cmp(x, y) < 0) ? x : y;
 	});
+var $author$project$ProcGen$calculatePropertyNumberChances = function (level) {
+	var twoPropChance = function (numGoodRolls) {
+		return A2($elm$core$Basics$min, 1, numGoodRolls / 100);
+	}(
+		$elm$core$List$sum(
+			A2(
+				$elm$core$List$map,
+				function (a) {
+					return A2($elm$core$Basics$min, 10, (level + 2) - a);
+				},
+				A2(
+					$elm$core$List$range,
+					1,
+					A2($elm$core$Basics$min, 10, level + 1)))));
+	var onePropChance = (1 - twoPropChance) * A2($elm$core$Basics$min, 1, (level + 2) / 10);
+	var zeroPropChance = (1 - twoPropChance) - onePropChance;
+	return _List_fromArray(
+		[
+			_Utils_Tuple2(twoPropChance, 2),
+			_Utils_Tuple2(onePropChance, 1),
+			_Utils_Tuple2(zeroPropChance, 0)
+		]);
+};
 var $author$project$ProcGen$avgRowReq = function (level) {
 	return ((level * 2) + 2) / 3;
 };
@@ -11839,7 +11857,10 @@ var $author$project$ProcGen$generate2Region = F2(
 			function (requ, regi, prop) {
 				return _Utils_update(
 					prop,
-					{region: regi, reqValue: requ});
+					{
+						region: regi,
+						reqValue: A2($elm$core$Basics$max, requ, 1)
+					});
 			});
 		var req = $author$project$ProcGen$pRound(
 			$author$project$ProcGen$avgRowReq(level) / 2);
@@ -11873,7 +11894,10 @@ var $author$project$ProcGen$generate3Region = F2(
 			function (requ, regi, prop) {
 				return _Utils_update(
 					prop,
-					{region: regi, reqValue: requ});
+					{
+						region: regi,
+						reqValue: A2($elm$core$Basics$max, requ, 1)
+					});
 			});
 		var req = $author$project$ProcGen$pRound(
 			(3 * $author$project$ProcGen$avgRowReq(level)) / 4);
@@ -11923,7 +11947,10 @@ var $author$project$ProcGen$generate4Region = F2(
 			function (requ, regi, prop) {
 				return _Utils_update(
 					prop,
-					{region: regi, reqValue: requ});
+					{
+						region: regi,
+						reqValue: A2($elm$core$Basics$max, requ, 1)
+					});
 			});
 		var req = $author$project$ProcGen$pRound(
 			$author$project$ProcGen$avgRowReq(level));
@@ -12101,21 +12128,22 @@ var $elm$random$Random$list = F2(
 	});
 var $author$project$ProcGen$generateProperties = F2(
 	function (level, blockedColors) {
-		var gen = F2(
-			function (roll1, roll2) {
-				return (_Utils_cmp(roll1, level) < 1) ? ((_Utils_cmp(roll1 + roll2, level) < 1) ? A2(
-					$elm$random$Random$list,
-					2,
-					A2($author$project$ProcGen$generateProperty, level, blockedColors)) : A2(
-					$elm$random$Random$list,
-					1,
-					A2($author$project$ProcGen$generateProperty, level, blockedColors))) : $elm$random$Random$constant(_List_Nil);
-			});
-		return A3(
-			$elm_community$random_extra$Random$Extra$andThen2,
-			gen,
-			A2($elm$random$Random$int, 1, 8),
-			A2($elm$random$Random$int, 1, 8));
+		var _v0 = $author$project$ProcGen$calculatePropertyNumberChances(level);
+		if (_v0.b) {
+			var x = _v0.a;
+			var xs = _v0.b;
+			return A2(
+				$elm$random$Random$andThen,
+				function (propNum) {
+					return A2(
+						$elm$random$Random$list,
+						propNum,
+						A2($author$project$ProcGen$generateProperty, level, blockedColors));
+				},
+				A2($elm$random$Random$weighted, x, xs));
+		} else {
+			return $elm$random$Random$constant(_List_Nil);
+		}
 	});
 var $author$project$ProcGen$generateTile = function (state) {
 	var baseTile = A2(
@@ -12185,7 +12213,15 @@ var $author$project$Crafting$demoScrolls = _List_fromArray(
 		_Utils_Tuple2($author$project$Items$Alteration, 5),
 		_Utils_Tuple2($author$project$Items$Distillation, 5)
 	]);
-var $author$project$Crafting$init = {orbs: $author$project$Crafting$demoOrbs, scrolls: $author$project$Crafting$demoScrolls, selectedEssence: $elm$core$Maybe$Nothing, selectedOrbs: _List_Nil, selectedScroll: $elm$core$Maybe$Nothing, tile: $elm$core$Maybe$Nothing};
+var $author$project$Crafting$init = {
+	orbs: $author$project$Crafting$demoOrbs,
+	scrollInfo: A2($elm$html$Html$div, _List_Nil, _List_Nil),
+	scrolls: $author$project$Crafting$demoScrolls,
+	selectedEssence: $elm$core$Maybe$Nothing,
+	selectedOrbs: _List_Nil,
+	selectedScroll: $elm$core$Maybe$Nothing,
+	tile: $elm$core$Maybe$Nothing
+};
 var $author$project$ProcGen$init = {level: 1, nextEssenceId: 0, nextPieceId: 0, nextTileId: 0};
 var $author$project$Main$noBoard = {colReqs: $elm$core$Dict$empty, highlight: _List_Nil, pieces: _List_Nil, rowReqs: $elm$core$Dict$empty, tiles: $elm$core$Array$empty};
 var $author$project$Main$init = function (_v0) {
@@ -13065,6 +13101,9 @@ var $author$project$Items$shapeToIndexes = function (shape) {
 		case 'Fourz':
 			var indexes = shape.a;
 			return indexes;
+		case 'Fourl':
+			var indexes = shape.a;
+			return indexes;
 		default:
 			var indexes = shape.a;
 			return indexes;
@@ -13708,9 +13747,13 @@ var $author$project$Items$shapeMap = F2(
 				var indexes = shape.a;
 				return $author$project$Items$Fourz(
 					f(indexes));
-			default:
+			case 'Fourl':
 				var indexes = shape.a;
 				return $author$project$Items$Fourl(
+					f(indexes));
+			default:
+				var indexes = shape.a;
+				return $author$project$Items$Fourr(
 					f(indexes));
 		}
 	});
@@ -14309,6 +14352,168 @@ var $author$project$ProcGen$rerollProperties = F3(
 			},
 			A2($author$project$ProcGen$generateProperties, level, blockedColors));
 	});
+var $author$project$Crafting$showPercent = function (_float) {
+	return $elm$core$String$fromInt(
+		$elm$core$Basics$floor(_float * 100)) + '%';
+};
+var $author$project$Crafting$updateInfo = F2(
+	function (state, level) {
+		var showValueInfo = function (_v6) {
+			var chance = _v6.a;
+			var value = _v6.b;
+			return A2(
+				$elm$html$Html$li,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						$elm$core$String$fromInt(value) + (' base: ' + $author$project$Crafting$showPercent(chance)))
+					]));
+		};
+		var showPropNumInfo = function (_v5) {
+			var chance = _v5.a;
+			var value = _v5.b;
+			var propString = (value === 1) ? ' property: ' : ' properties: ';
+			return A2(
+				$elm$html$Html$li,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						_Utils_ap(
+							$elm$core$String$fromInt(value),
+							_Utils_ap(
+								propString,
+								$author$project$Crafting$showPercent(chance))))
+					]));
+		};
+		var newScrollInfo = function () {
+			var _v0 = state.selectedScroll;
+			if (_v0.$ === 'Just') {
+				switch (_v0.a.$) {
+					case 'Modification':
+						var _v1 = _v0.a;
+						return A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									A2($elm$html$Html$Attributes$style, 'width', '50%')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$p,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Scroll info')
+										])),
+									A2(
+									$elm$html$Html$p,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Rerolls the base value and the color of a tile. Colors corresponding to the selected orbs can not be rolled. Chances for the different base values are:')
+										])),
+									A2(
+									$elm$html$Html$ul,
+									_List_Nil,
+									A2(
+										$elm$core$List$map,
+										showValueInfo,
+										$author$project$ProcGen$calculateBaseValueChances(level)))
+								]));
+					case 'Augmentation':
+						var _v2 = _v0.a;
+						return A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									A2($elm$html$Html$Attributes$style, 'width', '50%')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$p,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Scroll info')
+										])),
+									A2(
+									$elm$html$Html$p,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Augments a tile that has less then two properties with a new property. Properties with requirement color corresponding to a selected orb can not be rolled.')
+										]))
+								]));
+					case 'Alteration':
+						var _v3 = _v0.a;
+						return A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									A2($elm$html$Html$Attributes$style, 'width', '50%')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$p,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Scroll info')
+										])),
+									A2(
+									$elm$html$Html$p,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Rerolls the properties of a tile. Properties with requirement color corresponding to a selected orb can not be rolled. Chances for the different number of properties are:')
+										])),
+									A2(
+									$elm$html$Html$ul,
+									_List_Nil,
+									A2(
+										$elm$core$List$map,
+										showPropNumInfo,
+										$author$project$ProcGen$calculatePropertyNumberChances(level)))
+								]));
+					default:
+						var _v4 = _v0.a;
+						return A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									A2($elm$html$Html$Attributes$style, 'width', '50%')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$p,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Scroll info')
+										])),
+									A2(
+									$elm$html$Html$p,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Removes all properties from a tile with at least one property, and keeps one of them as an essence. If exactly one of the properties has requirement color corresponding to a selected orb, that property has a lower chance (40% instead of 50%) of beeing kept as an essence.')
+										]))
+								]));
+				}
+			} else {
+				return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+			}
+		}();
+		return _Utils_update(
+			state,
+			{scrollInfo: newScrollInfo});
+	});
 var $author$project$Crafting$updateModel = F2(
 	function (model, state) {
 		return _Utils_update(
@@ -14470,18 +14675,24 @@ var $author$project$Crafting$update = F2(
 					A2(
 						$author$project$Crafting$updateModel,
 						model,
-						_Utils_update(
-							craftingTable,
-							{selectedScroll: $elm$core$Maybe$Nothing})),
+						A2(
+							$author$project$Crafting$updateInfo,
+							_Utils_update(
+								craftingTable,
+								{selectedScroll: $elm$core$Maybe$Nothing}),
+							model.procGenState.level)),
 					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 					A2(
 						$author$project$Crafting$updateModel,
 						model,
-						_Utils_update(
-							craftingTable,
-							{
-								selectedScroll: $elm$core$Maybe$Just(scroll)
-							})),
+						A2(
+							$author$project$Crafting$updateInfo,
+							_Utils_update(
+								craftingTable,
+								{
+									selectedScroll: $elm$core$Maybe$Just(scroll)
+								}),
+							model.procGenState.level)),
 					$elm$core$Platform$Cmd$none);
 			case 'OrbSelected':
 				var orb = msg.a;
@@ -14489,23 +14700,29 @@ var $author$project$Crafting$update = F2(
 					A2(
 						$author$project$Crafting$updateModel,
 						model,
-						_Utils_update(
-							craftingTable,
-							{
-								selectedOrbs: A2($elm_community$list_extra$List$Extra$remove, orb, model.craftingTable.selectedOrbs)
-							})),
+						A2(
+							$author$project$Crafting$updateInfo,
+							_Utils_update(
+								craftingTable,
+								{
+									selectedOrbs: A2($elm_community$list_extra$List$Extra$remove, orb, model.craftingTable.selectedOrbs)
+								}),
+							model.procGenState.level)),
 					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 					A2(
 						$author$project$Crafting$updateModel,
 						model,
-						_Utils_update(
-							craftingTable,
-							{
-								selectedOrbs: A2(
-									$elm$core$List$take,
-									2,
-									A2($elm$core$List$cons, orb, model.craftingTable.selectedOrbs))
-							})),
+						A2(
+							$author$project$Crafting$updateInfo,
+							_Utils_update(
+								craftingTable,
+								{
+									selectedOrbs: A2(
+										$elm$core$List$take,
+										2,
+										A2($elm$core$List$cons, orb, model.craftingTable.selectedOrbs))
+								}),
+							model.procGenState.level)),
 					$elm$core$Platform$Cmd$none);
 			default:
 				var dragMsg = msg.a;
@@ -15190,8 +15407,10 @@ var $author$project$Items$drawPieceBorder = function (piece) {
 				return A2(drawPath, cord, ' h 104 v 52 h -52 v 52 h -104 v -52 h 52 v -53');
 			case 'Fourz':
 				return A2(drawPath, cord, ' h 52 v 52 h 52 v 52 h -104 v -52 h -52 v -52 h 52');
-			default:
+			case 'Fourl':
 				return A2(drawPath, cord, ' v 104 h 104 v -52 h -52 v -104 h -52 v 52');
+			default:
+				return A2(drawPath, cord, ' v 104 h 52 v -104 h 52 v -52 h -104 v 52');
 		}
 	};
 	var _v1 = piece.drawPosition;
@@ -15229,10 +15448,6 @@ var $elm$core$List$maximum = function (list) {
 		return $elm$core$Maybe$Nothing;
 	}
 };
-var $elm$core$Basics$min = F2(
-	function (x, y) {
-		return (_Utils_cmp(x, y) < 0) ? x : y;
-	});
 var $elm$core$List$minimum = function (list) {
 	if (list.b) {
 		var x = list.a;
@@ -15609,7 +15824,16 @@ var $author$project$Crafting$viewCraftingTable = function (state) {
 					[
 						A2($author$project$Crafting$viewTileBench, state.tile, state.selectedEssence),
 						A2($author$project$Crafting$viewScrolls, state.scrolls, state.selectedScroll),
-						A2($author$project$Crafting$viewOrbs, state.orbs, state.selectedOrbs)
+						A2($author$project$Crafting$viewOrbs, state.orbs, state.selectedOrbs),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'background-color', 'grey'),
+								A2($elm$html$Html$Attributes$style, 'width', '60%')
+							]),
+						_List_fromArray(
+							[state.scrollInfo]))
 					]))
 			]));
 };
@@ -16231,4 +16455,4 @@ var $author$project$Main$view = function (model) {
 var $author$project$Main$main = $elm$browser$Browser$element(
 	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
 _Platform_export({'Main':{'init':$author$project$Main$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Board.Board":{"args":[],"type":"{ tiles : Board.BoardTiles, pieces : List.List Items.Piece, highlight : List.List Items.Index, rowReqs : Board.ScoreDict, colReqs : Board.ScoreDict }"},"Board.BoardTiles":{"args":[],"type":"Array.Array (Array.Array Board.Field)"},"Items.BorderTransform":{"args":[],"type":"{ rotate : Basics.Int, translate : ( Basics.Int, Basics.Int ) }"},"Items.Essence":{"args":[],"type":"{ id : Basics.Int, property : Items.Property }"},"Items.Index":{"args":[],"type":"( Basics.Int, Basics.Int )"},"Items.Piece":{"args":[],"type":"{ shape : Items.Shape, borderTransform : Items.BorderTransform, drawPosition : Maybe.Maybe Items.Index, positions : List.List Items.Index, req : Items.Score, score : Items.Score, id : Basics.Int }"},"Items.Property":{"args":[],"type":"{ region : List.List Items.Index, reqColor : Items.Color, reqValue : Basics.Int, prodBonus : Basics.Float, addBonus : Basics.Float, isMet : Basics.Bool }"},"ProcGen.Reward":{"args":[],"type":"{ tiles : List.List Items.Tile, scrolls : List.List ( Items.Scroll, Basics.Int ), orbs : Items.Score, essences : List.List Items.Essence }"},"Items.Score":{"args":[],"type":"List.List ( Items.Color, Basics.Int )"},"Board.ScoreDict":{"args":[],"type":"Dict.Dict Basics.Int ( Items.Score, Items.Score )"},"ProcGen.State":{"args":[],"type":"{ nextTileId : Basics.Int, nextPieceId : Basics.Int, nextEssenceId : Basics.Int, level : Basics.Int }"},"Items.Tile":{"args":[],"type":"{ color : Items.Color, baseValue : Basics.Int, currentValue : Basics.Int, prodBonus : Basics.Float, addBonus : Basics.Float, properties : List.List Items.Property, drawPosition : Maybe.Maybe Items.Index, id : Basics.Int }"},"Board.Highlight":{"args":[],"type":"Basics.Bool"},"Crafting.Orb":{"args":[],"type":"Items.Color"},"Array.Tree":{"args":["a"],"type":"Elm.JsArray.JsArray (Array.Node a)"}},"unions":{"Main.Msg":{"args":[],"tags":{"DragMsg":["Items.Msg"],"KeyboardMsg":["Main.KeyDownInput"],"KeyboardUpMsg":["Main.KeyUpInput"],"MousePosition":["Basics.Int","Basics.Int"],"NewBoard":["Board.Board"],"NewPieceList":["( ProcGen.State, List.List Items.Piece )"],"NewTileList":["( ProcGen.State, List.List Items.Tile )"],"CraftingMsg":["Crafting.Msg"],"NextLevel":[],"RewardsGenerated":["( ProcGen.State, ProcGen.Reward )"],"RewardSelected":["Items.Tile"],"RewardConfirmed":[]}},"Array.Array":{"args":["a"],"tags":{"Array_elm_builtin":["Basics.Int","Basics.Int","Array.Tree a","Elm.JsArray.JsArray a"]}},"Basics.Bool":{"args":[],"tags":{"True":[],"False":[]}},"Items.Color":{"args":[],"tags":{"Purple":[],"Green":[],"Yellow":[],"Orange":[]}},"Dict.Dict":{"args":["k","v"],"tags":{"RBNode_elm_builtin":["Dict.NColor","k","v","Dict.Dict k v","Dict.Dict k v"],"RBEmpty_elm_builtin":[]}},"Board.Field":{"args":[],"tags":{"NonTile":["Board.Highlight"],"Empty":["Basics.Int","Board.Highlight"],"Filled":["Basics.Int","Items.Tile","Board.Highlight"],"Wall":["Board.Highlight"]}},"Basics.Float":{"args":[],"tags":{"Float":[]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"Main.KeyDownInput":{"args":[],"tags":{"RotateRight":[],"RotateLeft":[],"ShiftDown":[],"InvalidKey":[]}},"Main.KeyUpInput":{"args":[],"tags":{"ShiftUp":[],"InvalidUpKey":[]}},"List.List":{"args":["a"],"tags":{}},"Maybe.Maybe":{"args":["a"],"tags":{"Just":["a"],"Nothing":[]}},"Crafting.Msg":{"args":[],"tags":{"ApplyScroll":[],"ScrollSelected":["Items.Scroll"],"OrbSelected":["Crafting.Orb"],"TileGenerated":["Items.Tile"],"EssenceDistilled":["( ProcGen.State, Items.Tile, Items.Essence )"],"DragMsg":["Items.Msg"],"ApplyEssence":[]}},"Items.Msg":{"args":[],"tags":{"DragFromHandStart":["Items.Drag"],"DragFromBoardStart":["Items.Index"],"DragFromBenchStart":["Items.Drag"],"DragOverField":["Items.Index"],"DragLeave":[],"DragDrop":[]}},"Items.Scroll":{"args":[],"tags":{"Modification":[],"Augmentation":[],"Alteration":[],"Distillation":[]}},"Items.Shape":{"args":[],"tags":{"Twoi":["List.List Items.Index"],"Threel":["List.List Items.Index"],"Threei":["List.List Items.Index"],"Fouro":["List.List Items.Index"],"Fourt":["List.List Items.Index"],"Fours":["List.List Items.Index"],"Fourz":["List.List Items.Index"],"Fourl":["List.List Items.Index"]}},"Items.Drag":{"args":[],"tags":{"DragPiece":["Items.Piece"],"DragTile":["Items.Tile"],"DragEssence":["Items.Essence"],"None":[]}},"Elm.JsArray.JsArray":{"args":["a"],"tags":{"JsArray":["a"]}},"Dict.NColor":{"args":[],"tags":{"Red":[],"Black":[]}},"Array.Node":{"args":["a"],"tags":{"SubTree":["Array.Tree a"],"Leaf":["Elm.JsArray.JsArray a"]}}}}})}});}(this));
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Board.Board":{"args":[],"type":"{ tiles : Board.BoardTiles, pieces : List.List Items.Piece, highlight : List.List Items.Index, rowReqs : Board.ScoreDict, colReqs : Board.ScoreDict }"},"Board.BoardTiles":{"args":[],"type":"Array.Array (Array.Array Board.Field)"},"Items.BorderTransform":{"args":[],"type":"{ rotate : Basics.Int, translate : ( Basics.Int, Basics.Int ) }"},"Items.Essence":{"args":[],"type":"{ id : Basics.Int, property : Items.Property }"},"Items.Index":{"args":[],"type":"( Basics.Int, Basics.Int )"},"Items.Piece":{"args":[],"type":"{ shape : Items.Shape, borderTransform : Items.BorderTransform, drawPosition : Maybe.Maybe Items.Index, positions : List.List Items.Index, req : Items.Score, score : Items.Score, id : Basics.Int }"},"Items.Property":{"args":[],"type":"{ region : List.List Items.Index, reqColor : Items.Color, reqValue : Basics.Int, prodBonus : Basics.Float, addBonus : Basics.Float, isMet : Basics.Bool }"},"Items.Reward":{"args":[],"type":"{ tiles : List.List Items.Tile, scrolls : List.List ( Items.Scroll, Basics.Int ), orbs : Items.Score, essences : List.List Items.Essence }"},"Items.Score":{"args":[],"type":"List.List ( Items.Color, Basics.Int )"},"Board.ScoreDict":{"args":[],"type":"Dict.Dict Basics.Int ( Items.Score, Items.Score )"},"ProcGen.State":{"args":[],"type":"{ nextTileId : Basics.Int, nextPieceId : Basics.Int, nextEssenceId : Basics.Int, level : Basics.Int }"},"Items.Tile":{"args":[],"type":"{ color : Items.Color, baseValue : Basics.Int, currentValue : Basics.Int, prodBonus : Basics.Float, addBonus : Basics.Float, properties : List.List Items.Property, drawPosition : Maybe.Maybe Items.Index, id : Basics.Int }"},"Board.Highlight":{"args":[],"type":"Basics.Bool"},"Crafting.Orb":{"args":[],"type":"Items.Color"},"Array.Tree":{"args":["a"],"type":"Elm.JsArray.JsArray (Array.Node a)"}},"unions":{"Main.Msg":{"args":[],"tags":{"DragMsg":["Items.Msg"],"KeyboardMsg":["Main.KeyDownInput"],"KeyboardUpMsg":["Main.KeyUpInput"],"MousePosition":["Basics.Int","Basics.Int"],"NewBoard":["Board.Board"],"NewPieceList":["( ProcGen.State, List.List Items.Piece )"],"NewTileList":["( ProcGen.State, List.List Items.Tile )"],"CraftingMsg":["Crafting.Msg"],"NextLevel":[],"RewardsGenerated":["( ProcGen.State, Items.Reward )"],"RewardSelected":["Items.Tile"],"RewardConfirmed":[]}},"Array.Array":{"args":["a"],"tags":{"Array_elm_builtin":["Basics.Int","Basics.Int","Array.Tree a","Elm.JsArray.JsArray a"]}},"Basics.Bool":{"args":[],"tags":{"True":[],"False":[]}},"Items.Color":{"args":[],"tags":{"Purple":[],"Green":[],"Yellow":[],"Orange":[]}},"Dict.Dict":{"args":["k","v"],"tags":{"RBNode_elm_builtin":["Dict.NColor","k","v","Dict.Dict k v","Dict.Dict k v"],"RBEmpty_elm_builtin":[]}},"Board.Field":{"args":[],"tags":{"NonTile":["Board.Highlight"],"Empty":["Basics.Int","Board.Highlight"],"Filled":["Basics.Int","Items.Tile","Board.Highlight"],"Wall":["Board.Highlight"]}},"Basics.Float":{"args":[],"tags":{"Float":[]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"Main.KeyDownInput":{"args":[],"tags":{"RotateRight":[],"RotateLeft":[],"ShiftDown":[],"InvalidKey":[]}},"Main.KeyUpInput":{"args":[],"tags":{"ShiftUp":[],"InvalidUpKey":[]}},"List.List":{"args":["a"],"tags":{}},"Maybe.Maybe":{"args":["a"],"tags":{"Just":["a"],"Nothing":[]}},"Crafting.Msg":{"args":[],"tags":{"ApplyScroll":[],"ScrollSelected":["Items.Scroll"],"OrbSelected":["Crafting.Orb"],"TileGenerated":["Items.Tile"],"EssenceDistilled":["( ProcGen.State, Items.Tile, Items.Essence )"],"DragMsg":["Items.Msg"],"ApplyEssence":[]}},"Items.Msg":{"args":[],"tags":{"DragFromHandStart":["Items.Drag"],"DragFromBoardStart":["Items.Index"],"DragFromBenchStart":["Items.Drag"],"DragOverField":["Items.Index"],"DragLeave":[],"DragDrop":[]}},"Items.Scroll":{"args":[],"tags":{"Modification":[],"Augmentation":[],"Alteration":[],"Distillation":[]}},"Items.Shape":{"args":[],"tags":{"Twoi":["List.List Items.Index"],"Threel":["List.List Items.Index"],"Threei":["List.List Items.Index"],"Fouro":["List.List Items.Index"],"Fourt":["List.List Items.Index"],"Fours":["List.List Items.Index"],"Fourz":["List.List Items.Index"],"Fourl":["List.List Items.Index"],"Fourr":["List.List Items.Index"]}},"Items.Drag":{"args":[],"tags":{"DragPiece":["Items.Piece"],"DragTile":["Items.Tile"],"DragEssence":["Items.Essence"],"None":[]}},"Elm.JsArray.JsArray":{"args":["a"],"tags":{"JsArray":["a"]}},"Dict.NColor":{"args":[],"tags":{"Red":[],"Black":[]}},"Array.Node":{"args":["a"],"tags":{"SubTree":["Array.Tree a"],"Leaf":["Elm.JsArray.JsArray a"]}}}}})}});}(this));

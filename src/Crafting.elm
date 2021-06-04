@@ -24,8 +24,6 @@ scrollToText scroll =
 
 type alias Orb = Items.Color
 
---type alias Essence = Board.Property
-
 type alias TableState =
     { tile : Maybe Items.Tile
     , scrolls : List (Scroll, Int)
@@ -33,6 +31,7 @@ type alias TableState =
     , selectedScroll : Maybe Scroll
     , selectedOrbs : List Orb
     , selectedEssence : Maybe Essence
+    , scrollInfo : Html Msg
     }
 
 type alias Model a =
@@ -158,21 +157,37 @@ update msg model =
 
         ScrollSelected scroll ->
             if Just scroll == model.craftingTable.selectedScroll then
-                (updateModel model { craftingTable | selectedScroll = Nothing }, Cmd.none)
-            else
-                (updateModel model { craftingTable | selectedScroll = Just scroll }, Cmd.none)
-        OrbSelected orb ->
-            if List.member orb model.craftingTable.selectedOrbs then
                 (updateModel model
-                     { craftingTable | selectedOrbs =
-                      List.Extra.remove orb model.craftingTable.selectedOrbs
-                     }, Cmd.none
+                     <| updateInfo
+                         { craftingTable | selectedScroll = Nothing }
+                         model.procGenState.level
+                , Cmd.none
                 )
             else
                 (updateModel model
-                     { craftingTable | selectedOrbs =
-                      List.take 2 <| orb :: model.craftingTable.selectedOrbs
-                     }, Cmd.none
+                     <| updateInfo
+                         { craftingTable | selectedScroll = Just scroll }
+                         model.procGenState.level
+                , Cmd.none
+                )
+        OrbSelected orb ->
+            if List.member orb model.craftingTable.selectedOrbs then
+                (updateModel model
+                     <| updateInfo
+                         { craftingTable | selectedOrbs =
+                           List.Extra.remove orb model.craftingTable.selectedOrbs
+                         }
+                         model.procGenState.level
+                , Cmd.none
+                )
+            else
+                (updateModel model
+                     <| updateInfo
+                         { craftingTable | selectedOrbs =
+                           List.take 2 <| orb :: model.craftingTable.selectedOrbs
+                         }
+                         model.procGenState.level
+                , Cmd.none
                 )
 
         DragMsg dragMsg ->
@@ -239,6 +254,69 @@ addCraftingMats state scrolls orbs =
               -- List.map2 (\(sc,num1) (_,num2) -> (sc, num1 + num2))
               --     state.scrolls scrolls
     }
+
+updateInfo : TableState -> Int -> TableState
+updateInfo state level =
+    let showPropNumInfo (chance, value) =
+            let propString = if value == 1 then " property: " else " properties: "
+            in li []
+                [ text <| String.fromInt value ++ propString ++ showPercent chance
+                ]
+
+        showValueInfo (chance, value) =
+            li []
+                [ text <| String.fromInt value ++ " base: " ++ showPercent chance 
+                ]
+                
+        newScrollInfo =
+            case state.selectedScroll of
+                Just Modification ->
+                    div [ style "width" "50%" ]
+                        [ p [] [ text "Scroll info" ]
+                        , p [] [ text "Rerolls the base value and the color of a tile. Colors corresponding to the selected orbs can not be rolled. Chances for the different base values are:" ]
+                        , ul [] <| List.map showValueInfo
+                            (ProcGen.calculateBaseValueChances level)
+                        ]
+
+                Just Augmentation ->
+                    div [ style "width" "50%" ]
+                        [ p [] [ text "Scroll info" ]
+                        , p [] [ text "Augments a tile that has less then two properties with a new property. Properties with requirement color corresponding to a selected orb can not be rolled." ]
+                        ]
+
+                Just Alteration ->
+                    div [ style "width" "50%" ]
+                        [ p [] [ text "Scroll info" ]
+                        , p [] [ text "Rerolls the properties of a tile. Properties with requirement color corresponding to a selected orb can not be rolled. Chances for the different number of properties are:" ]
+                        , ul [] <| List.map showPropNumInfo
+                            (ProcGen.calculatePropertyNumberChances level)
+                        ]
+
+                Just Distillation ->
+                    div [ style "width" "50%" ]
+                        [ p [] [ text "Scroll info" ]
+                        , p [] [ text "Removes all properties from a tile with at least one property, and keeps one of them as an essence. If exactly one of the properties has requirement color corresponding to a selected orb, that property has a lower chance (40% instead of 50%) of beeing kept as an essence." ]
+                        ]
+                        
+                Nothing -> div [] []
+    in { state | scrollInfo = newScrollInfo }
+
+calculateBaseColorChance : Color -> List Color -> Float
+calculateBaseColorChance color selectedColors =
+    if List.member color selectedColors then 0
+        else 1 / (toFloat <| 4 - List.length selectedColors)
+
+showPercent : Float -> String
+showPercent float =
+    String.fromInt (floor <| float * 100) ++ "%"
+
+colorName : Color -> String
+colorName color =
+    case color of
+        Purple -> "Purple"
+        Green -> "Green"
+        Yellow -> "Yellow"
+        Orange -> "Orange"
     
 init : TableState
 init =
@@ -248,6 +326,7 @@ init =
     , selectedScroll = Nothing
     , selectedOrbs = []
     , selectedEssence = Nothing
+    , scrollInfo = div [] []
     }
 
 probaEssence : Items.Essence
@@ -328,6 +407,10 @@ viewCraftingTable state =
             [ viewTileBench state.tile state.selectedEssence
             , viewScrolls state.scrolls state.selectedScroll
             , viewOrbs state.orbs state.selectedOrbs
+            , div [ style "background-color" "grey"
+                  , style "width" "60%"
+                  ]
+                [ state.scrollInfo ]
             ]
         ]
 

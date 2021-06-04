@@ -10,6 +10,7 @@ body {
     cursor: inherit;
     margin: 0;
     padding: 0;
+    list-style: none;
   -webkit-touch-callout: none; /* iOS Safari */
     -webkit-user-select: none; /* Safari */
      -khtml-user-select: none; /* Konqueror HTML */
@@ -22,6 +23,7 @@ body {
 .tile {
     position: relative;
 }
+
 
 .tooltip {
     visibility: hidden;

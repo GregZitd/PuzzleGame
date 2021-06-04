@@ -19,6 +19,7 @@ import Items
 import ProcGen
 import Crafting
 
+
 -- MAIN
 
 
@@ -47,7 +48,7 @@ type alias Model =
     , craftingTable : Crafting.TableState
     , allReqMet : Bool
     , procGenState : ProcGen.State
-    , rewards : Maybe ProcGen.Reward
+    , rewards : Maybe Items.Reward
     , selectedReward : Maybe Items.Tile
     }
 
@@ -98,7 +99,7 @@ type Msg
     | NewTileList (ProcGen.State, List Items.Tile)
     | CraftingMsg Crafting.Msg
     | NextLevel
-    | RewardsGenerated (ProcGen.State, ProcGen.Reward)
+    | RewardsGenerated (ProcGen.State, Items.Reward)
     | RewardSelected Items.Tile
     | RewardConfirmed
 

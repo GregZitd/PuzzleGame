@@ -197,6 +197,7 @@ generate4Piece level =
                  , Fours Items.foursStartIndex
                  , Fourz Items.fourzStartIndex
                  , Fourl Items.fourlStartIndex
+                 , Fourr Items.fourrStartIndex
                  ]
             )
 
@@ -215,18 +216,9 @@ generatePiece size state =
            )
            next
        
-    
-
 generatePieceList : State -> Random.Generator (State, List Piece)
 generatePieceList state =
     let fieldSum = 10 + state.level * 2
-        -- nextPiece randPieceList size =
-        --     let next =
-        --             case size of
-        --                 2 -> generate2Piece level 
-        --                 3 -> generate3Piece level
-        --                 _ -> generate4Piece level
-        --     in Random.map2 (::) next randPieceList
 
         go : Int -> Random.Generator (State, List Piece) -> Random.Generator (State, List Piece)
         go sumLeft rStateList =
@@ -238,9 +230,6 @@ generatePieceList state =
                         )
                         <| Random.andThen (generatePiece randInt << Tuple.first) rStateList
 
-                    -- let (nextState, nextPiece) = generatePiece randInt goState
-                    -- in  go (sumLeft - randInt) nextState
-                    --     <| Random.map2 (::) nextPiece pieceList
             in case sumLeft of
                 0 -> rStateList
                 2 -> Random.andThen next <| Random.constant 2
@@ -249,7 +238,6 @@ generatePieceList state =
                 5 -> Random.andThen next <| Random.weighted (2,2) [(3,3)]
                 _ -> Random.andThen next <| Random.weighted (2,2) [(3,3), (5,4)]
     in go fieldSum <| Random.constant (state, [])
-    -- in Random.map (Dict.fromList << List.indexedMap Tuple.pair) (go fieldSum <| Random.constant [])
 
 --TILE
 
@@ -266,34 +254,47 @@ defaultTile =
         , id = 0
         }
 
+calculateBaseValueChances : Int -> List (Float, Int)
+calculateBaseValueChances level =
+    let threeTile = toFloat level * 0.015 + 0.05
+        twoTile = (1 - threeTile) * (0.025 + 0.15)
+        oneTile = 1 - threeTile - twoTile
+    in [ (threeTile, 3), (twoTile, 2), (oneTile, 1) ]
+
 generateBase : Int -> List Color -> Tile -> Random.Generator Tile
 generateBase level blockedColors tile =
-    let is3Tile = Random.map ((>) (toFloat level * 0.015 + 0.05)) <| Random.float 0 1
-        is2Tile = Random.map ((>) (toFloat level * 0.025 + 0.15)) <| Random.float 0 1
-        updateTileBaseVal three two uTile =
-            if three then
-                { uTile | baseValue = 3 }
-            else if two then
-                     { uTile | baseValue = 2 }
-                 else
-                     { uTile | baseValue = 1 }
-        updateTileColor col uTile =
-            { uTile | color = col }
-    in Random.constant tile
-        |> Random.map3 updateTileBaseVal is3Tile is2Tile
-        |> Random.map2 updateTileColor (generateColor blockedColors)
+    case calculateBaseValueChances level of
+        x :: xs ->
+            Random.map2
+                (\value color ->
+                     { tile | baseValue = value, color = color }
+                )
+                (Random.weighted x xs)
+                (generateColor blockedColors)
+        [] ->
+            --This case should never occur as calculateBasevalueChances never returns an empty
+            --list. The reason for the case expression is that I needed the head to pass to
+            --Random.weighted.
+            Random.constant tile
+    
+    -- let is3Tile = Random.map ((>) (toFloat level * 0.015 + 0.05)) <| Random.float 0 1
+    --     is2Tile = Random.map ((>) (toFloat level * 0.025 + 0.15)) <| Random.float 0 1
+    --     updateTileBaseVal three two uTile =
+    --         if three then
+    --             { uTile | baseValue = 3 }
+    --         else if two then
+    --                  { uTile | baseValue = 2 }
+    --              else
+    --                  { uTile | baseValue = 1 }
+    --     updateTileColor col uTile =
+    --         { uTile | color = col }
+    -- in Random.constant tile
+    --     |> Random.map3 updateTileBaseVal is3Tile is2Tile
+    --     |> Random.map2 updateTileColor (generateColor blockedColors)
 
 generateTile : State -> Random.Generator (State, Tile)
 generateTile state =
     let baseTile = Random.andThen (generateBase state.level []) defaultTile
-        -- genProperties roll1 roll2 =
-        --     if roll1 <= state.level then
-        --         if roll1 + roll2 <= state.level then
-        --             Random.list 2 (generateProperty state.level [])
-        --         else
-        --             Random.list 1 (generateProperty state.level [])
-        --     else
-        --         Random.constant []
     in Random.map2
            (\tile props ->
                 ( { state | nextTileId = state.nextTileId + 1 }
@@ -302,18 +303,45 @@ generateTile state =
            )
            baseTile
            (generateProperties state.level [])
+
+--These chances describe the following simulation: take two random numbers between 1 and 10,
+--call them a and b. If a+b <= level + 2 then you get 2 properties. Else if a <= level + 2
+--you get 1 property. Else if a > level + 2 you get 0 properties.
+calculatePropertyNumberChances : Int -> List (Float, Int)
+calculatePropertyNumberChances level =
+    let twoPropChance =
+            (\numGoodRolls -> min 1 <| toFloat numGoodRolls / 100)
+            <| List.sum
+            <| List.map
+                (\a -> min 10 (level + 2 - a))
+                (List.range 1 (min 10 (level + 1)))
+        onePropChance = (1 - twoPropChance) * (min 1 <| toFloat (level + 2) / 10)
+        zeroPropChance = 1 - twoPropChance - onePropChance
+    in [ (twoPropChance, 2), (onePropChance, 1), (zeroPropChance, 0) ]
        
 generateProperties : Int -> List Color -> Random.Generator (List Property)
 generateProperties level blockedColors =
-    let gen roll1 roll2 = 
-            if roll1 <= level then
-                if roll1 + roll2 <= level then
-                    Random.list 2 (generateProperty level blockedColors)
-                else
-                    Random.list 1 (generateProperty level blockedColors)
-            else
-                Random.constant []
-    in Random.Extra.andThen2 gen (Random.int 1 8) (Random.int 1 8)
+    case calculatePropertyNumberChances level of
+        x :: xs ->
+            Random.andThen
+                (\propNum -> Random.list propNum (generateProperty level blockedColors))
+                (Random.weighted x xs)
+        [] ->
+            --This case should never occur as calculatePropertyNumberchances never returns an empty
+            --list. The reason for the case expression is that I needed the head to pass to
+            --Random.weighted.
+            Random.constant []
+                    
+    
+    -- let gen roll1 roll2 = 
+    --         if roll1 <= level then
+    --             if roll1 + roll2 <= level then
+    --                 Random.list 2 (generateProperty level blockedColors)
+    --             else
+    --                 Random.list 1 (generateProperty level blockedColors)
+    --         else
+    --             Random.constant []
+    -- in Random.Extra.andThen2 gen (Random.int 1 8) (Random.int 1 8)
 
 rerollProperties : Int -> List Color -> Tile -> Random.Generator Tile
 rerollProperties level blockedColors tile =
@@ -399,7 +427,7 @@ generate2Region level property =
                      , Items.prop2Corn2
                      ]
         update requ regi prop =
-            { prop | reqValue = requ, region = regi }
+            { prop | reqValue = max requ 1, region = regi }
     in Random.map3 update req region <| Random.constant property
 
 generate3Region : Int -> Property -> Random.Generator Property
@@ -407,7 +435,7 @@ generate3Region level property =
     let req = pRound <| 3 * (avgRowReq level) / 4
         region = Random.uniform Items.prop3Corn [Items.prop3Edge]
         update requ regi prop =
-            { prop | reqValue = requ, region = regi }
+            { prop | reqValue = max requ 1, region = regi }
     in Random.map3 update req region <| Random.constant property
 
     
@@ -420,7 +448,7 @@ generate4Region level property =
                      , Items.prop4Double2
                      ]
         update requ regi prop =
-            { prop | reqValue = requ, region = regi }
+            { prop | reqValue = max requ 1, region = regi }
     in Random.map3 update req region <| Random.constant property
 
 generateProperty : Int -> List Color -> Random.Generator Property
@@ -550,14 +578,7 @@ generateEssenceReward score state =
                         |> go cs
     in go score <| Random.constant (state, [])
 
-type alias Reward =
-    { tiles : List Items.Tile
-    , scrolls : List (Items.Scroll, Int)
-    , orbs : Items.Score
-    , essences : List Items.Essence
-    }
-
-generateReward : Items.Score -> State -> Random.Generator (State, Reward)
+generateReward : Items.Score -> State -> Random.Generator (State, Items.Reward)
 generateReward score state =
     let baseReward =
             Random.map2
