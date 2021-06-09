@@ -9,10 +9,21 @@
     <body>
 	<div id="myapp"></div>
 	<script type="text/javascript">
+         //Extract the stored data from previous session
+         var storedData = localStorage.getItem('game-state');
+         var flags = storedData ? JSON.parse(storedData) : null;
+         
          //Start the Elm app
 	 var app = Elm.Main.init ({
-	     node: document.getElementById('myapp')
+	     node: document.getElementById('myapp'),
+             flags: flags
 	 });
+
+         // Listen for commands from the `setStorage` port.
+         // Turn the data to a string and put it in localStorage.
+         app.ports.setStorage.subscribe(function(state) {
+             localStorage.setItem('game-state', JSON.stringify(state));
+         });
 	</script>
         </body>
 </html>

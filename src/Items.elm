@@ -5,9 +5,19 @@ import Html.Attributes as Attributes
 import Html.Events as Events
 import Svg
 import Svg.Attributes as Svga
+import Json.Encode as E
+import Json.Decode as D
 
 
 type alias Index = (Int, Int)
+
+jeIndex : Index -> E.Value
+jeIndex index =
+    jePair E.int E.int index
+
+jdIndex : D.Decoder Index
+jdIndex =
+    jdPair D.int D.int
 
 
 type Color
@@ -116,6 +126,19 @@ type alias BorderTransform =
     , translate : (Int, Int)
     }
 
+jeBorderTransform : BorderTransform -> E.Value
+jeBorderTransform bt =
+    E.object
+        [ ("rotate", E.int bt.rotate)
+        , ("translate", jePair E.int E.int bt.translate)
+        ]
+
+jdBordterTransform : D.Decoder BorderTransform
+jdBordterTransform =
+    D.map2 BorderTransform
+        (D.field "rotate" D.int)
+        (jdPair D.int D.int)
+
 mapTranslate : ((Int, Int) -> (Int, Int)) -> BorderTransform -> BorderTransform
 mapTranslate f trans =
     { trans | translate = f trans.translate }
@@ -130,6 +153,41 @@ type Shape
     | Fourz (List Index)
     | Fourl (List Index)
     | Fourr (List Index)
+
+jeShape : Shape -> E.Value
+jeShape shape =
+    let shapeName =
+            case shape of
+                Twoi indexes -> "Twoi"
+                Threel indexes -> "Threel"
+                Threei indexes -> "Threei"
+                Fouro indexes -> "Fouro"
+                Fourt indexes -> "Fourt"
+                Fours indexes -> "Fours"
+                Fourz indexes -> "Fourz"
+                Fourl indexes -> "Fourl"
+                Fourr indexes -> "Fourr"
+    in E.object
+        [ ("shapeName", E.string shapeName)
+        , ("indexes", E.list jeIndex (shapeToIndexes shape))
+        ]
+
+jdShape : D.Decoder Shape
+jdShape =
+    let stringToShape string indexes =
+            case string of
+                "Twoi" -> Twoi indexes 
+                "Threel" -> Threel indexes 
+                "Threei" -> Threei indexes 
+                "Fouro" -> Fouro indexes 
+                "Fourt" -> Fourt indexes 
+                "Fours" -> Fours indexes 
+                "Fourz" -> Fourz indexes 
+                "Fourl" -> Fourl indexes 
+                _ -> Fourr indexes 
+    in D.map2 stringToShape
+        (D.field "shapeName" D.string)
+        (D.list jdIndex)
 
 twoiStartIndex : List Index
 twoiStartIndex = [(0,0), (0,1)]
@@ -644,3 +702,18 @@ drawProperty showReqMet pr =
         , drawRegion pr.region pr.reqColor
         , text <| " " ++ String.fromFloat pr.prodBonus ++ "x + " ++ String.fromFloat pr.addBonus
         ]
+
+--JSON-HELPER
+
+jePair : (a -> E.Value) -> (b -> E.Value) -> (a,b) -> E.Value
+jePair f g (a,b) =
+    E.object
+        [ ("a", f a)
+        , ("b", g b)
+        ]
+
+jdPair : D.Decoder a -> D.Decoder b -> D.Decoder (a,b)
+jdPair da db =
+    D.map2 Tuple.pair
+        (D.field "a" da)
+        (D.field "b" db)
